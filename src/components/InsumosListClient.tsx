@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, PlusCircle, AlertTriangle, Scale } from 'lucide-react';
+import { Search, PlusCircle, AlertTriangle, Scale, Plus } from 'lucide-react';
 import { Insumo } from '@/domain/insumo';
 import ComprarInsumoModal from './ComprarInsumoModal';
+import CrearInsumoModal from './CrearInsumoModal';
 
 export default function InsumosListClient({ inicialInsumos }: { inicialInsumos: Insumo[] }) {
   const [insumos, setInsumos] = useState<Insumo[]>(inicialInsumos);
   const [busqueda, setBusqueda] = useState('');
   const [insumoSeleccionado, setInsumoSeleccionado] = useState<Insumo | null>(null);
+  const [mostrarCrearModal, setMostrarCrearModal] = useState(false);
 
   const filtrados = insumos.filter(ins =>
     ins.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -25,18 +27,41 @@ export default function InsumosListClient({ inicialInsumos }: { inicialInsumos: 
     setInsumoSeleccionado(null);
   };
 
+  const handleCrearCompletado = (nuevoInsumo: any) => {
+    setInsumos(prev => {
+      const parsed: Insumo = {
+        ...nuevoInsumo,
+        created_at: new Date(nuevoInsumo.created_at),
+        costo_bruto_unitario: Number(nuevoInsumo.costo_bruto_unitario),
+        stock_actual: Number(nuevoInsumo.stock_actual),
+        stock_minimo: nuevoInsumo.stock_minimo ? Number(nuevoInsumo.stock_minimo) : undefined,
+      };
+      return [...prev, parsed].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    });
+    setMostrarCrearModal(false);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
-        <input
-          type="text"
-          placeholder="Buscar ingrediente o envase..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="block w-full rounded-xl bg-slate-900 border border-slate-800 pl-12 pr-4 py-3.5 text-base text-slate-100 placeholder-slate-500 focus:border-primary focus:outline-none min-h-[48px]"
-        />
+      {/* Search Input and Add Button */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Buscar ingrediente o envase..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="block w-full rounded-xl bg-slate-900 border border-slate-800 pl-12 pr-4 py-3.5 text-base text-slate-100 placeholder-slate-500 focus:border-primary focus:outline-none min-h-[48px]"
+          />
+        </div>
+        <button
+          onClick={() => setMostrarCrearModal(true)}
+          className="flex items-center gap-1.5 bg-primary text-white font-bold px-4 py-2 rounded-xl text-sm border border-primary shrink-0 min-h-[48px] hover:bg-primary/95 transition-colors cursor-pointer"
+        >
+          <Plus className="h-5 w-5" />
+          <span>Nuevo Insumo</span>
+        </button>
       </div>
 
       {/* List */}
@@ -85,7 +110,7 @@ export default function InsumosListClient({ inicialInsumos }: { inicialInsumos: 
 
                   <button
                     onClick={() => setInsumoSeleccionado(ins)}
-                    className="flex items-center gap-1.5 bg-slate-800 text-primary hover:bg-slate-700 font-bold px-3 py-2 rounded-xl text-sm border border-slate-800 min-h-[44px]"
+                    className="flex items-center gap-1.5 bg-slate-800 text-primary hover:bg-slate-700 font-bold px-3 py-2 rounded-xl text-sm border border-slate-800 min-h-[44px] cursor-pointer"
                   >
                     <PlusCircle className="h-4 w-4" /> Comprar
                   </button>
@@ -101,6 +126,13 @@ export default function InsumosListClient({ inicialInsumos }: { inicialInsumos: 
           insumo={insumoSeleccionado}
           onClose={() => setInsumoSeleccionado(null)}
           onSuccess={handleCompraCompletada}
+        />
+      )}
+
+      {mostrarCrearModal && (
+        <CrearInsumoModal
+          onClose={() => setMostrarCrearModal(false)}
+          onSuccess={handleCrearCompletado}
         />
       )}
     </div>

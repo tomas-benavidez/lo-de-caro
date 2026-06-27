@@ -1,29 +1,45 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { Target, DollarSign, Briefcase, Plus, Percent } from 'lucide-react';
+import { Target, DollarSign, Briefcase, Plus, Users, BookOpen, ShoppingBag } from 'lucide-react';
 import { upsertConfiguracion } from '@/infrastructure/actions/configuracion';
 import { createCostoFijo } from '@/infrastructure/actions/costos_fijos';
 import { createInversion } from '@/infrastructure/actions/inversiones';
+import ClientesConfig from './ClientesConfig';
+import RecetasConfig from './RecetasConfig';
+import ProductosConfig from './ProductosConfig';
+import { Insumo } from '@/domain/insumo';
 
 interface Props {
   inicialCostosFijos: any[];
   inicialInversiones: any[];
   inicialConfig: any[];
+  inicialInsumos: Insumo[];
+  inicialRecetas: any[];
+  inicialProductos: any[];
+  inicialClientes: any[];
 }
 
 export default function ConfiguracionClient({
   inicialCostosFijos,
   inicialInversiones,
   inicialConfig,
+  inicialInsumos,
+  inicialRecetas,
+  inicialProductos,
+  inicialClientes,
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [tab, setTab] = useState<'meta' | 'costos' | 'inversiones'>('meta');
+  const [tab, setTab] = useState<'meta' | 'costos' | 'inversiones' | 'recetas' | 'productos' | 'clientes'>('meta');
   
   // States
   const [costosFijos, setCostosFijos] = useState<any[]>(inicialCostosFijos);
   const [inversiones, setInversiones] = useState<any[]>(inicialInversiones);
   const [config, setConfig] = useState<any[]>(inicialConfig);
+  const [insumos] = useState<Insumo[]>(inicialInsumos);
+  const [recetas, setRecetas] = useState<any[]>(inicialRecetas);
+  const [productos, setProductos] = useState<any[]>(inicialProductos);
+  const [clientes, setClientes] = useState<any[]>(inicialClientes);
 
   // Form states
   const [metaVal, setMetaVal] = useState(
@@ -122,33 +138,60 @@ export default function ConfiguracionClient({
   return (
     <div className="space-y-6">
       {/* Configuration tabs */}
-      <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
         <button
           onClick={() => { setTab('meta'); setError(null); setSuccessMsg(null); }}
-          className={`flex-1 text-center py-2 text-sm font-semibold rounded-lg transition min-h-[40px] flex items-center justify-center gap-1.5 ${
-            tab === 'meta' ? 'bg-slate-800 text-slate-100' : 'text-slate-500'
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'meta' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <Target className="h-4.5 w-4.5" />
-          Meta
+          <Target className="h-4.5 w-4.5 shrink-0" />
+          <span>Meta</span>
         </button>
         <button
           onClick={() => { setTab('costos'); setError(null); setSuccessMsg(null); }}
-          className={`flex-1 text-center py-2 text-sm font-semibold rounded-lg transition min-h-[40px] flex items-center justify-center gap-1.5 ${
-            tab === 'costos' ? 'bg-slate-800 text-slate-100' : 'text-slate-500'
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'costos' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <DollarSign className="h-4.5 w-4.5" />
-          Costos Fijos
+          <DollarSign className="h-4.5 w-4.5 shrink-0" />
+          <span>Costos</span>
         </button>
         <button
           onClick={() => { setTab('inversiones'); setError(null); setSuccessMsg(null); }}
-          className={`flex-1 text-center py-2 text-sm font-semibold rounded-lg transition min-h-[40px] flex items-center justify-center gap-1.5 ${
-            tab === 'inversiones' ? 'bg-slate-800 text-slate-100' : 'text-slate-500'
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'inversiones' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          <Briefcase className="h-4.5 w-4.5" />
-          Inversiones
+          <Briefcase className="h-4.5 w-4.5 shrink-0" />
+          <span>Equipos</span>
+        </button>
+        <button
+          onClick={() => { setTab('recetas'); setError(null); setSuccessMsg(null); }}
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'recetas' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
+          }`}
+        >
+          <BookOpen className="h-4.5 w-4.5 shrink-0" />
+          <span>Recetas</span>
+        </button>
+        <button
+          onClick={() => { setTab('productos'); setError(null); setSuccessMsg(null); }}
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'productos' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
+          }`}
+        >
+          <ShoppingBag className="h-4.5 w-4.5 shrink-0" />
+          <span>Productos</span>
+        </button>
+        <button
+          onClick={() => { setTab('clientes'); setError(null); setSuccessMsg(null); }}
+          className={`flex-col sm:flex-row text-center py-2 px-1 text-xs sm:text-sm font-semibold rounded-lg transition min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer ${
+            tab === 'clientes' ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-400'
+          }`}
+        >
+          <Users className="h-4.5 w-4.5 shrink-0" />
+          <span>Clientes</span>
         </button>
       </div>
 
@@ -189,7 +232,7 @@ export default function ConfiguracionClient({
             <button
               type="submit"
               disabled={isPending}
-              className="w-full flex items-center justify-center bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px]"
+              className="w-full flex items-center justify-center bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px] cursor-pointer"
             >
               {isPending ? 'Guardando...' : 'Actualizar Meta'}
             </button>
@@ -233,7 +276,7 @@ export default function ConfiguracionClient({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full flex items-center justify-center gap-1.5 bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px]"
+                className="w-full flex items-center justify-center gap-1.5 bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px] cursor-pointer"
               >
                 <Plus className="h-5 w-5 text-white" />
                 <span>Agregar Costo Fijo</span>
@@ -326,7 +369,7 @@ export default function ConfiguracionClient({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full flex items-center justify-center gap-1.5 bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px]"
+                className="w-full flex items-center justify-center gap-1.5 bg-primary text-white py-3.5 px-4 rounded-xl font-bold hover:bg-primary/95 transition min-h-[48px] cursor-pointer"
               >
                 <Plus className="h-5 w-5 text-white" />
                 <span>Registrar Inversión</span>
@@ -370,6 +413,39 @@ export default function ConfiguracionClient({
             )}
           </div>
         </div>
+      )}
+
+      {/* Recetas Tab */}
+      {tab === 'recetas' && (
+        <RecetasConfig
+          insumos={insumos}
+          recetas={recetas}
+          onAddReceta={(newReceta) => setRecetas(prev => [...prev, newReceta].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
+      )}
+
+      {/* Productos Tab */}
+      {tab === 'productos' && (
+        <ProductosConfig
+          insumos={insumos}
+          recetas={recetas}
+          productos={productos}
+          onAddProducto={(newProd) => setProductos(prev => [...prev, newProd].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
+      )}
+
+      {/* Clientes Tab */}
+      {tab === 'clientes' && (
+        <ClientesConfig
+          clientes={clientes}
+          onAddCliente={(newCli) => setClientes(prev => [...prev, newCli].sort((a, b) => a.nombre_apellido.localeCompare(b.nombre_apellido)))}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
       )}
     </div>
   );
