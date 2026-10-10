@@ -486,3 +486,161 @@ dist/assets/index-qc6ebzJg.js     318.66 kB │ gzip: 89.84 kB
 - **Auditoría Chrome DevTools:** 0 errores de consola, árbol de accesibilidad verificado, restauración de foco comprobada, persistencia en caliente probada y aislamiento de materias primas comprobado.
 
 
+
+
+---
+
+# Reporte Oficial de Verificación SDD: Ventas y Cobranzas (SPEC-004)
+
+- **Módulo Principal:** `SPEC-004` (Catálogo de Clientes, Ventas de Mostrador, Métodos de Pago, Estados de Cobro y Descuento Atómico de Freezer)
+- **Módulos Previos:** `SPEC-001` / `SPEC-001.1` (Materias Primas), `SPEC-002` (Recetas y Costeo), `SPEC-003` / `SPEC-003.1` (Producción y Stock de Congelados)
+- **Fecha de Auditoría:** 2026-10-10
+- **Auditor:** Subagente Verificador / Auditor (@reviewer)
+- **Veredicto Final:** **APROBADO (100% Verificado y Listo para Producción)**
+
+---
+
+## 1. Alcance Auditado y Verificado (SPEC-004)
+
+Se auditaron y validaron de punta a punta las 6 tareas atómicas definidas en [`specs/004-ventas-cobranzas/tasks.md`](file:///home/tomas/lo-de-caro/specs/004-ventas-cobranzas/tasks.md):
+
+1. **Tarea 1: Modelo de Dominio y Servicios de Ventas y Cobranzas (TDD)**
+   - Creación de [`src/domain/models/cliente.ts`](file:///home/tomas/lo-de-caro/src/domain/models/cliente.ts) con tipado de `Cliente`, `NuevoClienteInput`, `RegistroPagoClienteInput`.
+   - Creación de [`src/domain/models/venta.ts`](file:///home/tomas/lo-de-caro/src/domain/models/venta.ts) con tipado de `EstadoCobranza` (`Cobrado`, `Pendiente`, `Regalo`), `MetodoPago` (`Efectivo`, `Transferencia`), `Venta`, `VentaItem`, `NuevaVentaInput`.
+   - Implementación de [`src/domain/services/ventaServicio.ts`](file:///home/tomas/lo-de-caro/src/domain/services/ventaServicio.ts) para cálculo de subtotales, totales (con total $0 para ventas de regalo/degustación), validación de disponibilidad en freezer y métricas de mostrador.
+   - 13 pruebas unitarias de dominio pasando en Vitest.
+
+2. **Tarea 2: Repositorios de Infraestructura con Supabase (TDD)**
+   - Implementación de [`src/infrastructure/repositories/clienteRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/clienteRepositorio.ts) con métodos `listar()`, `crear()`, `actualizarSaldo()` y `registrarPagoDeuda()`.
+   - Implementación de [`src/infrastructure/repositories/ventaRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/ventaRepositorio.ts) con métodos `listar()`, `registrarVenta()` y `anularVenta()`.
+   - Transacción atómica de múltiple impacto:
+     1. Inserción de venta en `ventas`.
+     2. Inserción de renglones en `venta_items`.
+     3. Descuento de stock en `productos.stock_actual` para cada plato vendido.
+     4. Actualización de cuenta corriente en `clientes.saldo_pendiente` si la venta es en estado `Pendiente`.
+     5. Rollback defensivo integral que revierte productos y clientes ante fallos.
+     6. Persistencia y mapeo seguro de `metodo_pago` garantizando compatibilidad total con la restricción `CHECK (estado_pago IN ('Pagado', 'Pendiente', 'Regalo'))` de Postgres.
+   - 11 pruebas unitarias de infraestructura pasando en Vitest con mocks del cliente Supabase.
+
+3. **Tarea 3: Hook de Aplicación `useVentasCobranzas`**
+   - Creación de [`src/presentation/hooks/useVentasCobranzas.ts`](file:///home/tomas/lo-de-caro/src/presentation/hooks/useVentasCobranzas.ts) para orquestar la reactividad, cálculo automático de resumen financiero, manejo inmutable de clientes y ventas tras registros, cobros o anulaciones.
+   - Compilación estricta y tipado estricto sin `any`.
+
+4. **Tarea 4: Componentes de Modales Accesibles**
+   - [`src/presentation/components/ModalNuevaVenta.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalNuevaVenta.tsx): selección de cliente registrado o mostrador, agregador de platos con precios reales y stock, selector de estado (`Cobrado`, `Pendiente`, `Regalo`), selector de método de pago (`Efectivo`, `Transferencia`), advertencia de stock insuficiente con confirmación explícita.
+   - [`src/presentation/components/ModalNuevoCliente.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalNuevoCliente.tsx): alta rápida accesible con validación de nombre y teléfono.
+   - [`src/presentation/components/ModalCobrarDeuda.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalCobrarDeuda.tsx): cobranza total o parcial de saldos adeudados con selección de método de pago y actualización inmediata.
+   - Cumplimiento de los 5 estados obligatorios en cada control UI y soporte WAI-ARIA (`role="dialog"`, `aria-modal="true"`, foco cautivo y `Escape`).
+
+5. **Tarea 5: Componente Principal `ListaVentasCobranzas` (Mobile-First y 5 Estados)**
+   - Implementación de [`src/presentation/components/ListaVentasCobranzas.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaVentasCobranzas.tsx) mobile-first (375px a 420px), sin anidamiento excesivo de tarjetas (*cards sobre cards*).
+   - Métricas de mostrador: Total Cobrado, Dinero en la Calle, Clientes Deudores.
+   - Sub-pestañas: "Ventas Recientes" y "Clientes y Cuentas Corrientes".
+   - Filtros por estado de venta y por estado de deuda de cliente.
+   - Enlace directo a WhatsApp para cada cliente con teléfono.
+   - Botón accesible para anular venta con confirmación modal.
+
+6. **Tarea 6: Integración en `App.tsx` y Auditoría en Vivo con DevTools**
+   - Conexión de `ListaVentasCobranzas`, los modales y `ModalConfirmacion` en la solapa "Ventas" de [`src/App.tsx`](file:///home/tomas/lo-de-caro/src/App.tsx).
+   - Sincronización reactiva del stock de freezer entre las solapas de Producción, Recetas y Ventas.
+   - Auditoría en caliente en navegador real con Chrome DevTools en `http://localhost:5173/`.
+   - Creación en vivo de cliente, venta a crédito con descuento de stock en freezer, cobro de deuda y anulación con restitución de stock verificadas en base de datos real.
+
+---
+
+## 2. Evidencias Empíricas de Calidad
+
+### Pruebas Unitarias Automatizadas (Vitest)
+```bash
+$ npm test
+
+ RUN  v3.2.7 /home/tomas/lo-de-caro
+
+ ✓ tests/domain/calculadorCostos.test.ts (8 tests)
+ ✓ tests/domain/produccionServicio.test.ts (16 tests)
+ ✓ tests/domain/ventaServicio.test.ts (13 tests)
+ ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests)
+ ✓ tests/infrastructure/productoRepositorio.test.ts (16 tests)
+ ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (9 tests)
+ ✓ tests/infrastructure/clienteRepositorio.test.ts (5 tests)
+ ✓ tests/infrastructure/ventaRepositorio.test.ts (6 tests)
+
+ Test Files  8 passed (8)
+      Tests  84 passed (84)
+   Duration  1.36s
+```
+- **Total de pruebas:** 84 tests automatizados ejecutados y 100% aprobados (13 tests de dominio en `ventaServicio`, 11 tests de infraestructura en repositorios de clientes y ventas).
+
+---
+
+### Compilación y Bundle de Producción (`tsc && vite build`)
+```bash
+$ npm run build
+
+> lo-de-caro@0.1.0 build
+> tsc && vite build
+
+vite v6.4.4 building for production...
+✓ 98 modules transformed.
+dist/registerSW.js                  0.13 kB
+dist/manifest.webmanifest           0.45 kB
+dist/index.html                     1.21 kB │ gzip:  0.63 kB
+dist/assets/index-BC5FE9_b.css     28.79 kB │ gzip:  5.66 kB
+dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip: 58.90 kB
+dist/assets/index-BEjmabyD.js     367.21 kB │ gzip: 98.94 kB
+✓ built in 2.54s
+```
+- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de compilación).
+
+---
+
+### Auditoría en Vivo en Navegador (Chrome DevTools en `http://localhost:5173/`)
+
+1. **Consola de JavaScript:**
+   - **Resultado:** **0 errores, 0 advertencias, 0 logs huérfanos, 0 issues de accesibilidad**.
+2. **Árbol de Accesibilidad (A11y Tree Snapshot):**
+   - Diálogos modales con `role="dialog"`, `aria-modal="true"`, encabezados semánticos de nivel 2 y descripciones accesibles.
+   - Foco cautivo automático inicial en el primer campo interactivo (`select` de cliente en nueva venta, `input` de nombre en nuevo cliente, `input` de monto en cobrar deuda).
+   - Soporte completo de tecla `Escape` con cierre seguro y prevención durante guardado.
+   - Etiquetas explícitas y `sr-only` asociadas a cada input y control de formulario.
+   - Cumplimiento de los 5 estados obligatorios en cada control UI.
+3. **Prueba Operativa en Caliente:**
+   - **Alta de Cliente:** Se registró en tiempo real a "Verónica Molina" con teléfono `1144556677`.
+   - **Registro de Venta:** Se cargó venta de 1 porción de "Raviolones de Verdura y Ricotta" a $8.000 en estado "Pendiente de cobro".
+   - **Doble Impacto de Inventario:**
+     - En la solapa "Producción", el stock del freezer de "Raviolones" se decrementó automáticamente de 15 a 14 porciones.
+     - En la solapa "Ventas", la cuenta corriente de "Verónica Molina" reflejó inmediatamente "Debe $8.000", y la métrica de mostrador "En la Calle" subió a $8.000.
+   - **Cobro de Cuenta Corriente:** Mediante el botón "Cobrar", se liquidó la deuda de $8.000 en Efectivo; el saldo deudor se actualizó a $0 ("Al día ($0)") y la métrica "En la Calle" retornó a $0.
+   - **Anulación con Restitución:** Se probó la anulación de la venta con diálogo de confirmación accesible; el registro se eliminó y el stock en el freezer de Raviolones se restituyó de 14 a 15 porciones automáticamente.
+4. **Capturas de Pantalla Generadas:**
+   - [`evidencia_ventas_mostrador.png`](file:///home/tomas/lo-de-caro/evidencia_ventas_mostrador.png): Vista de mostrador con métricas, solapas de ventas/clientes y filtros.
+   - [`evidencia_modal_nueva_venta.png`](file:///home/tomas/lo-de-caro/evidencia_modal_nueva_venta.png): Modal accesible de registro de venta con canasta de productos y estados de cobro.
+
+---
+
+## 3. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
+
+### Tarea 1 & Tarea 2: Modelo de Dominio y Repositorios Supabase
+- **CÓMO:** Se modelaron las entidades `Cliente`, `Venta`, `VentaItem`, `EstadoCobranza` y `MetodoPago` en español estricto; se implementaron las funciones puras en `ventaServicio.ts` y las transacciones de múltiple impacto con rollback defensivo en `ventaRepositorio.ts` y `clienteRepositorio.ts`, respetando el check constraint de Postgres `estado_pago IN ('Pagado', 'Pendiente', 'Regalo')` y persistiendo de forma segura el método de pago (`Efectivo` / `Transferencia`).
+- **POR QUÉ:** Vender una comida casera congelada debe garantizar que el stock físico del freezer se descuente en el mismo instante y que, si el cliente no paga en el momento, el saldo quede anotado en su cuenta corriente sin riesgo de descalce contable ante fallas de red.
+- **PARA QUÉ:** Caro sabe exactamente qué comidas tiene listas en el freezer y cuánto dinero le debe cada vecino sin tener que llevar cuadernos paralelos.
+
+### Tarea 3, Tarea 4 & Tarea 5: Hook Reactivo, Modales y Tablero de Mostrador
+- **CÓMO:** Se implementó `useVentasCobranzas` con sincronización en memoria y los componentes `ListaVentasCobranzas`, `ModalNuevaVenta`, `ModalNuevoCliente` y `ModalCobrarDeuda`, integrando botones rápidos de WhatsApp, filtros de deudores, canasta de productos con edición de precios reales de mostrador y advertencia de stock insuficiente.
+- **POR QUÉ:** Cumple los estándares WCAG AA, los 5 estados obligatorios en cada control UI, la filosofía mobile-first (375px a 420px) y la regla Ponytail de cero cards sobre cards.
+- **PARA QUÉ:** En pleno despacho de cocina o mostrador, Caro puede anotar una venta en 3 toques desde su celular, enviar un WhatsApp al cliente o registrar un pago en segundos.
+
+---
+
+## 4. Veredicto Formal General
+
+```
+=====================================================
+               VEREDICTO SPEC-004: APROBADO
+          Listo para Producción e Integración
+=====================================================
+```
+- **Conformidad de Especificación:** 100% de requisitos cubiertos (`RF-01` a `RF-06`).
+- **Pruebas Automatizadas:** 84/84 tests exitosos en Vitest (0 fallas).
+- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
+- **Auditoría Chrome DevTools:** 0 errores de consola, 0 issues de accesibilidad, árbol a11y verificado, persistencia en caliente probada en Supabase y sincronización bidireccional de freezer comprobada.

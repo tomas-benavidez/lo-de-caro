@@ -2,17 +2,24 @@ import React, { useState } from 'react';
 import { MateriaPrima } from './domain/models/materiaPrima.ts';
 import { Producto, AjusteStockProductoInput } from './domain/models/producto.ts';
 import { LoteProduccion } from './domain/models/loteProduccion.ts';
+import { Venta, NuevaVentaInput } from './domain/models/venta.ts';
+import { Cliente, NuevoClienteInput, RegistroPagoClienteInput } from './domain/models/cliente.ts';
 import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
 import { useProductosRecetas } from './presentation/hooks/useProductosRecetas.ts';
 import { useProduccion } from './presentation/hooks/useProduccion.ts';
+import { useVentasCobranzas } from './presentation/hooks/useVentasCobranzas.ts';
 import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrimas.tsx';
 import { ListaRecetas } from './presentation/components/ListaRecetas.tsx';
 import { ListaProduccion } from './presentation/components/ListaProduccion.tsx';
+import { ListaVentasCobranzas } from './presentation/components/ListaVentasCobranzas.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalReceta } from './presentation/components/ModalReceta.tsx';
 import { ModalRegistroProduccion } from './presentation/components/ModalRegistroProduccion.tsx';
 import { ModalAjusteStockProducto } from './presentation/components/ModalAjusteStockProducto.tsx';
+import { ModalNuevaVenta } from './presentation/components/ModalNuevaVenta.tsx';
+import { ModalNuevoCliente } from './presentation/components/ModalNuevoCliente.tsx';
+import { ModalCobrarDeuda } from './presentation/components/ModalCobrarDeuda.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
 
 
@@ -77,6 +84,29 @@ export const App: React.FC = () => {
     registrarProduccion,
     eliminarLote,
   } = useProduccion();
+
+  // Estados para el módulo de Ventas y Cobranzas (SPEC-004)
+  const [modalNuevaVentaAbierto, setModalNuevaVentaAbierto] = useState(false);
+  const [modalNuevoClienteAbierto, setModalNuevoClienteAbierto] = useState(false);
+  const [modalCobrarDeudaAbierto, setModalCobrarDeudaAbierto] = useState(false);
+  const [clienteACobrar, setClienteACobrar] = useState<Cliente | null>(null);
+  const [ventaAAnular, setVentaAAnular] = useState<Venta | null>(null);
+  const [confirmandoAnulacionVenta, setConfirmandoAnulacionVenta] = useState(false);
+  const [errorAnulacionVenta, setErrorAnulacionVenta] = useState<string | null>(null);
+
+  // Hook de ciclo de vida y datos para el módulo de ventas y cobranzas
+  const {
+    ventas,
+    clientes,
+    resumen: resumenVentas,
+    cargando: cargandoVentas,
+    error: errorVentas,
+    recargar: recargarVentas,
+    registrarVenta,
+    anularVenta,
+    crearCliente,
+    cobrarDeudaCliente,
+  } = useVentasCobranzas();
 
   const handleAbrirNuevoInsumo = () => {
     setMateriaAEditar(null);
@@ -247,6 +277,73 @@ export const App: React.FC = () => {
     await ajustarStockProducto(productoAAjustarStock.id, input);
   };
 
+  // Handlers para el módulo de Ventas y Cobranzas (SPEC-004)
+  const handleAbrirNuevaVenta = () => {
+    setModalNuevaVentaAbierto(true);
+  };
+
+  const handleCerrarNuevaVenta = () => {
+    setModalNuevaVentaAbierto(false);
+  };
+
+  const handleGuardarVenta = async (datos: NuevaVentaInput) => {
+    await registrarVenta(datos, productos);
+    await recargarRecetas();
+  };
+
+  const handleAbrirNuevoCliente = () => {
+    setModalNuevoClienteAbierto(true);
+  };
+
+  const handleCerrarNuevoCliente = () => {
+    setModalNuevoClienteAbierto(false);
+  };
+
+  const handleGuardarCliente = async (datos: NuevoClienteInput) => {
+    return await crearCliente(datos);
+  };
+
+  const handleAbrirCobrarDeuda = (cliente: Cliente) => {
+    setClienteACobrar(cliente);
+    setModalCobrarDeudaAbierto(true);
+  };
+
+  const handleCerrarCobrarDeuda = () => {
+    setModalCobrarDeudaAbierto(false);
+    setClienteACobrar(null);
+  };
+
+  const handleGuardarCobroDeuda = async (datos: RegistroPagoClienteInput) => {
+    await cobrarDeudaCliente(datos);
+  };
+
+  const handleAbrirAnularVenta = (venta: Venta) => {
+    setErrorAnulacionVenta(null);
+    setVentaAAnular(venta);
+  };
+
+  const handleCancelarAnulacionVenta = () => {
+    if (confirmandoAnulacionVenta) return;
+    setVentaAAnular(null);
+    setErrorAnulacionVenta(null);
+  };
+
+  const handleConfirmarAnulacionVenta = async () => {
+    if (!ventaAAnular) return;
+    setConfirmandoAnulacionVenta(true);
+    setErrorAnulacionVenta(null);
+    try {
+      await anularVenta(ventaAAnular.id);
+      setVentaAAnular(null);
+      await recargarRecetas();
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error al anular la venta.';
+      setErrorAnulacionVenta(mensaje);
+    } finally {
+      setConfirmandoAnulacionVenta(false);
+    }
+  };
+
   return (
 
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
@@ -351,20 +448,21 @@ export const App: React.FC = () => {
 
 
         {pestana === 'ventas' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Ventas y Clientes</h2>
-                <p className="text-xs text-stone-500">Salida de congelados y control de cobros o deudores</p>
-              </div>
-              <Boton variante="primario" tamano="chico">
-                + Nueva Venta
-              </Boton>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
-              Módulo de mostrador para registrar ventas cobradas o pendientes por cliente.
-            </div>
-          </section>
+          <ListaVentasCobranzas
+            ventas={ventas}
+            clientes={clientes}
+            resumen={resumenVentas}
+            cargando={cargandoVentas}
+            error={errorVentas}
+            onAbrirNuevaVenta={handleAbrirNuevaVenta}
+            onAbrirNuevoCliente={handleAbrirNuevoCliente}
+            onCobrarDeuda={handleAbrirCobrarDeuda}
+            onAnularVenta={handleAbrirAnularVenta}
+            onReintentar={() => {
+              recargarVentas();
+              recargarRecetas();
+            }}
+          />
         )}
 
         {pestana === 'gastos' && (
@@ -489,6 +587,48 @@ export const App: React.FC = () => {
         error={errorEliminacionLote}
         onConfirmar={handleConfirmarEliminacionLote}
         onCancelar={handleCancelarEliminacionLote}
+      />
+
+      {/* Modal accesible de nueva venta de mostrador (SPEC-004) */}
+      <ModalNuevaVenta
+        abierto={modalNuevaVentaAbierto}
+        clientes={clientes}
+        productos={productos}
+        onCerrar={handleCerrarNuevaVenta}
+        onGuardar={handleGuardarVenta}
+        onAbrirNuevoCliente={handleAbrirNuevoCliente}
+      />
+
+      {/* Modal accesible de nuevo cliente (SPEC-004) */}
+      <ModalNuevoCliente
+        abierto={modalNuevoClienteAbierto}
+        onCerrar={handleCerrarNuevoCliente}
+        onGuardar={handleGuardarCliente}
+      />
+
+      {/* Modal accesible para cobrar deuda de cliente (SPEC-004) */}
+      <ModalCobrarDeuda
+        abierto={modalCobrarDeudaAbierto}
+        cliente={clienteACobrar}
+        onCerrar={handleCerrarCobrarDeuda}
+        onGuardar={handleGuardarCobroDeuda}
+      />
+
+      {/* Modal accesible de confirmación de anulación de venta (SPEC-004) */}
+      <ModalConfirmacion
+        abierto={Boolean(ventaAAnular)}
+        titulo="Anular Venta"
+        mensaje={
+          ventaAAnular
+            ? `¿Estás segura de que deseás anular la venta de "${ventaAAnular.nombreCliente}" por $${ventaAAnular.total.toLocaleString('es-AR')} del ${ventaAAnular.fecha}? Esta acción restituirá los productos al freezer y ajustará el saldo adeudado si la venta estaba pendiente.`
+            : ''
+        }
+        textoConfirmar="Anular venta y restituir freezer"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoAnulacionVenta}
+        error={errorAnulacionVenta}
+        onConfirmar={handleConfirmarAnulacionVenta}
+        onCancelar={handleCancelarAnulacionVenta}
       />
 
       {/* Pie de página con identidad sutil */}
