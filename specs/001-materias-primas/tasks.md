@@ -13,10 +13,10 @@
   * **Verificación:** Ejecución de `npm test` con Vitest (5/5 tests superados).
   * **Archivos:** `src/infrastructure/repositories/materiaPrimaRepositorio.ts`, `tests/infrastructure/materiaPrimaRepositorio.test.ts`.
 
-- [ ] **Tarea 2: Hook de Aplicación `useMateriasPrimas`**
+- [x] **Tarea 2: Hook de Aplicación `useMateriasPrimas`**
   * **Descripción:** Crear el hook `src/presentation/hooks/useMateriasPrimas.ts` para gestionar el estado de carga (`cargando`), lista de insumos (`materiasPrimas`), errores y función para refrescar/crear.
   * **Criterio de Aceptación:** Manejo de estados de carga y error limpio, sin dependencias externas.
-  * **Verificación:** Test unitario o comprobación de estado reactivo.
+  * **Verificación:** `npm test` y compilación estricta de TypeScript con `npm run build`.
   * **Archivos:** `src/presentation/hooks/useMateriasPrimas.ts`.
 
 - [ ] **Tarea 3: Componente `ListaMateriasPrimas` (UI Mobile-First)**

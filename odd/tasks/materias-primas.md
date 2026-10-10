@@ -28,10 +28,10 @@ Permitir a Caro registrar, consultar y actualizar todas las materias primas e in
   - Checks: `npm test` (5/5 tests pasados en materiaPrimaRepositorio.test.ts)
   - Evidencia: implementado con Vitest y mapeo tipado snake_case a camelCase
 
-- [ ] `TASK-02`: Hook de Aplicación `useMateriasPrimas` (`src/presentation/hooks/useMateriasPrimas.ts`)
+- [x] `TASK-02`: Hook de Aplicación `useMateriasPrimas` (`src/presentation/hooks/useMateriasPrimas.ts`)
   - Ruta: inline
-  - Checks: `npm test` / build
-  - Evidencia: Pendiente
+  - Checks: `npm test` y `npm run build` pasando
+  - Evidencia: implementado con useCallback, useState, tipado estricto y ordenamiento alfabético
 
 - [ ] `TASK-03`: Componente `ListaMateriasPrimas` (`src/presentation/components/ListaMateriasPrimas.tsx`)
   - Ruta: inline
