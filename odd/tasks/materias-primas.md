@@ -43,10 +43,10 @@ Permitir a Caro registrar, consultar y actualizar todas las materias primas e in
   - Checks: `npm run build` exitoso, navegación teclado y validación de tipos
   - Evidencia: implementado con 5 estados UI, focus automático, escape, selector de unidad y validación
 
-- [ ] `TASK-05`: Integración en `App.tsx` y Verificación Final
+- [x] `TASK-05`: Integración en `App.tsx` y Verificación Final
   - Ruta: inline
-  - Checks: `npm test`, `npm run build`, auditoría DevTools
-  - Evidencia: Pendiente
+  - Checks: `npm test` (9/9 ok), `npm run build` (exit 0), auditoría Chrome DevTools en vivo aprobada
+  - Evidencia: verificado de punta a punta con persistencia real en Supabase, generado REPORTE_VERIFICACION_SDD.md
 
 ## Próximo Paso
-Ejecutar `TASK-01`: implementar `materiaPrimaRepositorio.ts` y su test unitario.
+Módulo SPEC-001 completado al 100%. Siguiente fase del MVP: Módulo de Recetas y Estandarización de Costos (SPEC-002).

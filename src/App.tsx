@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { Boton } from './presentation/components/Boton.tsx';
+import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
+import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrimas.tsx';
+import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'finanzas';
 
 export const App: React.FC = () => {
   const [pestana, setPestana] = useState<PestanaActiva>('materiasPrimas');
+  const [modalInsumoAbierto, setModalInsumoAbierto] = useState(false);
+
+  // Hook de ciclo de vida y datos para el módulo de materias primas
+  const {
+    materiasPrimas,
+    cargando: cargandoMaterias,
+    error: errorMaterias,
+    recargar: recargarMaterias,
+    crearMateriaPrima,
+  } = useMateriasPrimas();
 
   return (
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
@@ -65,44 +78,13 @@ export const App: React.FC = () => {
       {/* Área de Contenido Principal */}
       <main className="flex-1 max-w-2xl w-full mx-auto p-4">
         {pestana === 'materiasPrimas' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Catálogo de Materias Primas</h2>
-                <p className="text-xs text-stone-500">Control de insumos, costos por unidad y alertas de reposición</p>
-              </div>
-              <Boton variante="primario" tamano="chico">
-                + Nuevo Insumo
-              </Boton>
-            </div>
-
-            <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-sm">
-              <div className="p-3 text-xs text-stone-500 bg-stone-50/50 flex justify-between font-medium">
-                <span>Insumo y Unidad</span>
-                <span>Stock / Mínimo</span>
-              </div>
-              <div className="p-3 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-semibold text-stone-900">Carne picada especial</p>
-                  <p className="text-xs text-stone-500">$5.90 / gramo ($5.900/kg)</p>
-                </div>
-                <div className="text-right">
-                  <span className="font-bold text-stone-800">14.0 kg</span>
-                  <p className="text-xs text-stone-400">Mín: 5.0 kg</p>
-                </div>
-              </div>
-              <div className="p-3 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-semibold text-stone-900">Tapas de empanada (docena)</p>
-                  <p className="text-xs text-stone-500">$620 / unidad</p>
-                </div>
-                <div className="text-right">
-                  <span className="font-bold text-marca-tomate">3 unidades</span>
-                  <p className="text-xs text-marca-tomate font-medium">REPONER</p>
-                </div>
-              </div>
-            </div>
-          </section>
+          <ListaMateriasPrimas
+            materiasPrimas={materiasPrimas}
+            cargando={cargandoMaterias}
+            error={errorMaterias}
+            onAbrirNuevoModal={() => setModalInsumoAbierto(true)}
+            onReintentar={recargarMaterias}
+          />
         )}
 
         {pestana === 'recetas' && (
@@ -175,6 +157,15 @@ export const App: React.FC = () => {
           </section>
         )}
       </main>
+
+      {/* Modal accesible de nueva materia prima */}
+      <ModalNuevaMateriaPrima
+        abierto={modalInsumoAbierto}
+        onCerrar={() => setModalInsumoAbierto(false)}
+        onGuardar={async (datos) => {
+          await crearMateriaPrima(datos);
+        }}
+      />
 
       {/* Pie de página con identidad sutil */}
       <footer className="text-center py-4 text-xs text-stone-400">

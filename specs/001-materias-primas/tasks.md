@@ -31,8 +31,8 @@
   * **Verificación:** Compilación TypeScript limpia y verificación de accesibilidad.
   * **Archivos:** `src/presentation/components/ModalNuevaMateriaPrima.tsx`.
 
-- [ ] **Tarea 5: Integración en `App.tsx` y Auditoría con DevTools**
+- [x] **Tarea 5: Integración en `App.tsx` y Auditoría con DevTools**
   * **Descripción:** Conectar el listado y modal dentro de la solapa "Materias Primas" en `App.tsx`. El `@reviewer` audita con `chrome-devtools`, ejecuta `/sdd-archive` y genera `REPORTE_VERIFICACION_SDD.md`.
   * **Criterio de Aceptación:** Flujo de punta a punta funcional con persistencia en Supabase y reporte oficial de cierre.
-  * **Verificación:** `/sdd-verify`, `npm run build`, `npm test` y generación de reporte.
+  * **Verificación:** `npm test` (9/9 pasados), `npm run build` (cero errores) y auditoría en caliente con Chrome DevTools.
   * **Archivos:** `src/App.tsx`, `REPORTE_VERIFICACION_SDD.md`.
