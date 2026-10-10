@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UnidadMedida } from '../../domain/models/materiaPrima.ts';
+import { MateriaPrima, UnidadMedida } from '../../domain/models/materiaPrima.ts';
 import { NuevaMateriaPrimaInput } from '../../infrastructure/repositories/materiaPrimaRepositorio.ts';
 import { Boton } from './Boton.tsx';
 
@@ -7,15 +7,17 @@ export interface ModalNuevaMateriaPrimaProps {
   abierto: boolean;
   onCerrar: () => void;
   onGuardar: (datos: NuevaMateriaPrimaInput) => Promise<void>;
+  materiaPrimaAEditar?: MateriaPrima | null;
 }
 
 /**
- * Modal accesible para registrar una nueva materia prima con los 5 estados UI obligatorios.
+ * Modal accesible para registrar o editar una materia prima con los 5 estados UI obligatorios.
  */
 export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
   abierto,
   onCerrar,
   onGuardar,
+  materiaPrimaAEditar = null,
 }) => {
   const [nombre, setNombre] = useState('');
   const [unidadMedida, setUnidadMedida] = useState<UnidadMedida>('g');
@@ -26,11 +28,26 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
   const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
 
   const primerInputRef = useRef<HTMLInputElement>(null);
+  const esEdicion = Boolean(materiaPrimaAEditar);
 
-  // Manejo de foco inicial y tecla Escape
+  // Inicialización de campos, foco inicial y manejo de tecla Escape
   useEffect(() => {
     if (abierto) {
       setErrorValidacion(null);
+      if (materiaPrimaAEditar) {
+        setNombre(materiaPrimaAEditar.nombre);
+        setUnidadMedida(materiaPrimaAEditar.unidadMedida);
+        setCostoUnitario(materiaPrimaAEditar.costoUnitario.toString());
+        setStockActual(materiaPrimaAEditar.stockActual.toString());
+        setStockMinimo(materiaPrimaAEditar.stockMinimo.toString());
+      } else {
+        setNombre('');
+        setUnidadMedida('g');
+        setCostoUnitario('');
+        setStockActual('');
+        setStockMinimo('');
+      }
+
       setTimeout(() => primerInputRef.current?.focus(), 50);
 
       const manejarKeyDown = (e: KeyboardEvent) => {
@@ -42,7 +59,7 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
       window.addEventListener('keydown', manejarKeyDown);
       return () => window.removeEventListener('keydown', manejarKeyDown);
     }
-  }, [abierto, guardando, onCerrar]);
+  }, [abierto, materiaPrimaAEditar, guardando, onCerrar]);
 
   if (!abierto) return null;
 
@@ -122,10 +139,12 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
           <div>
             <h2 id="modal-titulo" className="text-base font-bold text-stone-900">
-              Nueva Materia Prima
+              {esEdicion ? 'Editar Materia Prima' : 'Nueva Materia Prima'}
             </h2>
             <p className="text-xs text-stone-500">
-              Registrá un ingrediente para costear recetas y controlar stock
+              {esEdicion
+                ? 'Modificá el costo unitario o realizá ajustes en el stock'
+                : 'Registrá un ingrediente para costear recetas y controlar stock'}
             </p>
           </div>
 
@@ -181,7 +200,9 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
                 className={estilosInput}
               >
                 <option value="g">Gramos (g)</option>
+                <option value="kg">Kilogramos (kg)</option>
                 <option value="ml">Mililitros (ml)</option>
+                <option value="l">Litros (l)</option>
                 <option value="u">Unidades (u)</option>
               </select>
             </div>
@@ -208,7 +229,7 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="input-stock-actual" className="block text-xs font-semibold text-stone-800 mb-1">
-                Stock Inicial ({unidadMedida})
+                {esEdicion ? 'Stock Actual' : 'Stock Inicial'} ({unidadMedida})
               </label>
               <input
                 id="input-stock-actual"
@@ -263,7 +284,11 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
               tamano="mediano"
               disabled={guardando}
             >
-              {guardando ? 'Guardando...' : 'Guardar Insumo'}
+              {guardando
+                ? 'Guardando...'
+                : esEdicion
+                ? 'Guardar Cambios'
+                : 'Guardar Insumo'}
             </Boton>
           </div>
         </form>

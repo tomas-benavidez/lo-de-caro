@@ -8,6 +8,8 @@ export interface ListaMateriasPrimasProps {
   cargando: boolean;
   error: string | null;
   onAbrirNuevoModal: () => void;
+  onEditar?: (materiaPrima: MateriaPrima) => void;
+  onEliminar?: (materiaPrima: MateriaPrima) => void;
   onReintentar?: () => void;
 }
 
@@ -32,6 +34,8 @@ export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
   cargando,
   error,
   onAbrirNuevoModal,
+  onEditar,
+  onEliminar,
   onReintentar,
 }) => {
   const [busqueda, setBusqueda] = useState('');
@@ -150,7 +154,7 @@ export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
             return (
               <li
                 key={item.id}
-                className="p-3.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
+                className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -185,12 +189,41 @@ export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
                   </p>
                 </div>
 
-                <div className="text-right whitespace-nowrap pl-2">
-                  <div className="text-sm font-bold text-stone-900">
-                    {formatearMoneda(item.costoUnitario)}
+                {/* Precio y acciones con los 5 estados obligatorios */}
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-stone-100 sm:border-t-0">
+                  <div className="text-left sm:text-right whitespace-nowrap">
+                    <div className="text-sm font-bold text-stone-900">
+                      {formatearMoneda(item.costoUnitario)}
+                    </div>
+                    <div className="text-[11px] text-stone-500">
+                      por {item.unidadMedida}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-stone-500">
-                    por {item.unidadMedida}
+
+                  <div className="flex items-center gap-2">
+                    {onEditar && (
+                      <Boton
+                        type="button"
+                        variante="secundario"
+                        tamano="chico"
+                        onClick={() => onEditar(item)}
+                        aria-label={`Editar ${item.nombre}`}
+                      >
+                        Editar
+                      </Boton>
+                    )}
+
+                    {onEliminar && (
+                      <Boton
+                        type="button"
+                        variante="peligro"
+                        tamano="chico"
+                        onClick={() => onEliminar(item)}
+                        aria-label={`Eliminar ${item.nombre}`}
+                      >
+                        Eliminar
+                      </Boton>
+                    )}
                   </div>
                 </div>
               </li>

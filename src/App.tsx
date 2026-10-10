@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
+import { MateriaPrima } from './domain/models/materiaPrima.ts';
 import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
 import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrimas.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
+import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'finanzas';
 
 export const App: React.FC = () => {
   const [pestana, setPestana] = useState<PestanaActiva>('materiasPrimas');
   const [modalInsumoAbierto, setModalInsumoAbierto] = useState(false);
+  const [materiaAEditar, setMateriaAEditar] = useState<MateriaPrima | null>(null);
+  const [materiaAEliminar, setMateriaAEliminar] = useState<MateriaPrima | null>(null);
+  const [confirmandoEliminacion, setConfirmandoEliminacion] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
   // Hook de ciclo de vida y datos para el módulo de materias primas
   const {
@@ -17,7 +23,59 @@ export const App: React.FC = () => {
     error: errorMaterias,
     recargar: recargarMaterias,
     crearMateriaPrima,
+    actualizarMateriaPrima,
+    eliminarMateriaPrima,
   } = useMateriasPrimas();
+
+  const handleAbrirNuevoInsumo = () => {
+    setMateriaAEditar(null);
+    setModalInsumoAbierto(true);
+  };
+
+  const handleAbrirEditarInsumo = (materia: MateriaPrima) => {
+    setMateriaAEditar(materia);
+    setModalInsumoAbierto(true);
+  };
+
+  const handleCerrarModalInsumo = () => {
+    setModalInsumoAbierto(false);
+    setMateriaAEditar(null);
+  };
+
+  const handleGuardarInsumo = async (datos: Parameters<typeof crearMateriaPrima>[0]) => {
+    if (materiaAEditar) {
+      await actualizarMateriaPrima(materiaAEditar.id, datos);
+    } else {
+      await crearMateriaPrima(datos);
+    }
+  };
+
+  const handleAbrirEliminarInsumo = (materia: MateriaPrima) => {
+    setErrorEliminacion(null);
+    setMateriaAEliminar(materia);
+  };
+
+  const handleConfirmarEliminacion = async () => {
+    if (!materiaAEliminar) return;
+
+    setConfirmandoEliminacion(true);
+    setErrorEliminacion(null);
+    try {
+      await eliminarMateriaPrima(materiaAEliminar.id);
+      setMateriaAEliminar(null);
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error al eliminar el insumo.';
+      setErrorEliminacion(mensaje);
+    } finally {
+      setConfirmandoEliminacion(false);
+    }
+  };
+
+  const handleCancelarEliminacion = () => {
+    if (confirmandoEliminacion) return;
+    setMateriaAEliminar(null);
+    setErrorEliminacion(null);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
@@ -82,7 +140,9 @@ export const App: React.FC = () => {
             materiasPrimas={materiasPrimas}
             cargando={cargandoMaterias}
             error={errorMaterias}
-            onAbrirNuevoModal={() => setModalInsumoAbierto(true)}
+            onAbrirNuevoModal={handleAbrirNuevoInsumo}
+            onEditar={handleAbrirEditarInsumo}
+            onEliminar={handleAbrirEliminarInsumo}
             onReintentar={recargarMaterias}
           />
         )}
@@ -158,13 +218,29 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Modal accesible de nueva materia prima */}
+      {/* Modal accesible de nueva / edición de materia prima */}
       <ModalNuevaMateriaPrima
         abierto={modalInsumoAbierto}
-        onCerrar={() => setModalInsumoAbierto(false)}
-        onGuardar={async (datos) => {
-          await crearMateriaPrima(datos);
-        }}
+        materiaPrimaAEditar={materiaAEditar}
+        onCerrar={handleCerrarModalInsumo}
+        onGuardar={handleGuardarInsumo}
+      />
+
+      {/* Modal accesible de confirmación de eliminación */}
+      <ModalConfirmacion
+        abierto={Boolean(materiaAEliminar)}
+        titulo="Eliminar Materia Prima"
+        mensaje={
+          materiaAEliminar
+            ? `¿Estás segura de que deseás eliminar "${materiaAEliminar.nombre}"? Esta acción borrará el insumo del listado.`
+            : ''
+        }
+        textoConfirmar="Eliminar definitivamente"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoEliminacion}
+        error={errorEliminacion}
+        onConfirmar={handleConfirmarEliminacion}
+        onCancelar={handleCancelarEliminacion}
       />
 
       {/* Pie de página con identidad sutil */}

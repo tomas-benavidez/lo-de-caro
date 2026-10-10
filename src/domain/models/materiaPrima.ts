@@ -1,4 +1,4 @@
-export type UnidadMedida = 'g' | 'ml' | 'u';
+export type UnidadMedida = 'g' | 'ml' | 'u' | 'kg' | 'l';
 
 export interface MateriaPrima {
   id: string;

@@ -45,6 +45,31 @@ export function mapearDominioAFila(materia: NuevaMateriaPrimaInput): Omit<Materi
 }
 
 /**
+ * Convierte un input parcial de actualización a formato snake_case de Postgres.
+ */
+export function mapearParcialDominioAFila(
+  materia: Partial<NuevaMateriaPrimaInput>
+): Partial<Omit<MateriaPrimaFila, 'id' | 'created_at' | 'updated_at'>> {
+  const fila: Partial<Omit<MateriaPrimaFila, 'id' | 'created_at' | 'updated_at'>> = {};
+  if (materia.nombre !== undefined) {
+    fila.nombre = materia.nombre.trim();
+  }
+  if (materia.unidadMedida !== undefined) {
+    fila.unidad_medida = materia.unidadMedida;
+  }
+  if (materia.costoUnitario !== undefined) {
+    fila.costo_unitario = materia.costoUnitario;
+  }
+  if (materia.stockActual !== undefined) {
+    fila.stock_actual = materia.stockActual;
+  }
+  if (materia.stockMinimo !== undefined) {
+    fila.stock_minimo = materia.stockMinimo;
+  }
+  return fila;
+}
+
+/**
  * Repositorio de infraestructura para la entidad MateriaPrima sobre Supabase.
  */
 export class MateriaPrimaRepositorio {
@@ -82,6 +107,43 @@ export class MateriaPrimaRepositorio {
     }
 
     return mapearFilaADominio(data);
+  }
+
+  /**
+   * Actualiza los campos de una materia prima existente por su id.
+   */
+  async actualizar(id: string, materia: Partial<NuevaMateriaPrimaInput>): Promise<MateriaPrima> {
+    const fila = mapearParcialDominioAFila(materia);
+    const { data, error } = await this.cliente
+      .from('materias_primas')
+      .update(fila)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Error al actualizar materia prima: ${error.message}`);
+    }
+
+    return mapearFilaADominio(data);
+  }
+
+  /**
+   * Elimina una materia prima por su id.
+   * Si el insumo está vinculado a recetas, captura el error Postgres 23503 y arroja un mensaje amigable.
+   */
+  async eliminar(id: string): Promise<void> {
+    const { error } = await this.cliente
+      .from('materias_primas')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      if (error.code === '23503' || (typeof error.message === 'string' && error.message.includes('23503'))) {
+        throw new Error('No se puede eliminar la materia prima porque está siendo utilizada en una o más recetas.');
+      }
+      throw new Error(`Error al eliminar materia prima: ${error.message}`);
+    }
   }
 }
 

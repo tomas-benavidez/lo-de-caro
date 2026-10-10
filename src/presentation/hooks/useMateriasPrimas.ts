@@ -12,6 +12,8 @@ export interface UseMateriasPrimasResultado {
   error: string | null;
   recargar: () => Promise<void>;
   crearMateriaPrima: (datos: NuevaMateriaPrimaInput) => Promise<MateriaPrima>;
+  actualizarMateriaPrima: (id: string, datos: Partial<NuevaMateriaPrimaInput>) => Promise<MateriaPrima>;
+  eliminarMateriaPrima: (id: string) => Promise<void>;
 }
 
 /**
@@ -57,6 +59,40 @@ export function useMateriasPrimas(
     [repositorio]
   );
 
+  const actualizarMateriaPrima = useCallback(
+    async (id: string, datos: Partial<NuevaMateriaPrimaInput>): Promise<MateriaPrima> => {
+      setError(null);
+      try {
+        const actualizada = await repositorio.actualizar(id, datos);
+        setMateriasPrimas((previas) => {
+          const actualizadas = previas.map((item) => (item.id === id ? actualizada : item));
+          return actualizadas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+        return actualizada;
+      } catch (err) {
+        const mensaje = err instanceof Error ? err.message : 'Error al actualizar materia prima';
+        setError(mensaje);
+        throw err;
+      }
+    },
+    [repositorio]
+  );
+
+  const eliminarMateriaPrima = useCallback(
+    async (id: string): Promise<void> => {
+      setError(null);
+      try {
+        await repositorio.eliminar(id);
+        setMateriasPrimas((previas) => previas.filter((item) => item.id !== id));
+      } catch (err) {
+        const mensaje = err instanceof Error ? err.message : 'Error al eliminar materia prima';
+        setError(mensaje);
+        throw err;
+      }
+    },
+    [repositorio]
+  );
+
   useEffect(() => {
     recargar();
   }, [recargar]);
@@ -67,5 +103,7 @@ export function useMateriasPrimas(
     error,
     recargar,
     crearMateriaPrima,
+    actualizarMateriaPrima,
+    eliminarMateriaPrima,
   };
 }
