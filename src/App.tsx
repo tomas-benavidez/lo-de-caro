@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MateriaPrima } from './domain/models/materiaPrima.ts';
-import { Producto } from './domain/models/producto.ts';
+import { Producto, AjusteStockProductoInput } from './domain/models/producto.ts';
 import { LoteProduccion } from './domain/models/loteProduccion.ts';
 import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
@@ -12,7 +12,9 @@ import { ListaProduccion } from './presentation/components/ListaProduccion.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalReceta } from './presentation/components/ModalReceta.tsx';
 import { ModalRegistroProduccion } from './presentation/components/ModalRegistroProduccion.tsx';
+import { ModalAjusteStockProducto } from './presentation/components/ModalAjusteStockProducto.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
+
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'gastos' | 'finanzas';
 
@@ -50,6 +52,7 @@ export const App: React.FC = () => {
     recargar: recargarRecetas,
     crearProductoReceta,
     actualizarProductoReceta,
+    ajustarStockProducto,
     eliminarProductoReceta,
   } = useProductosRecetas();
 
@@ -59,6 +62,11 @@ export const App: React.FC = () => {
   const [loteAEliminar, setLoteAEliminar] = useState<LoteProduccion | null>(null);
   const [confirmandoEliminacionLote, setConfirmandoEliminacionLote] = useState(false);
   const [errorEliminacionLote, setErrorEliminacionLote] = useState<string | null>(null);
+
+  // Estados para Ajuste Manual de Stock de Congelados (SPEC-003.1)
+  const [modalAjusteStockAbierto, setModalAjusteStockAbierto] = useState(false);
+  const [productoAAjustarStock, setProductoAAjustarStock] = useState<Producto | null>(null);
+
 
   // Hook de ciclo de vida y datos para el módulo de producción
   const {
@@ -223,7 +231,24 @@ export const App: React.FC = () => {
     setErrorEliminacionLote(null);
   };
 
+  // Handlers para Ajuste Manual de Stock de Congelados (SPEC-003.1)
+  const handleAbrirAjusteStock = (producto: Producto) => {
+    setProductoAAjustarStock(producto);
+    setModalAjusteStockAbierto(true);
+  };
+
+  const handleCerrarAjusteStock = () => {
+    setModalAjusteStockAbierto(false);
+    setProductoAAjustarStock(null);
+  };
+
+  const handleGuardarAjusteStock = async (input: AjusteStockProductoInput) => {
+    if (!productoAAjustarStock) return;
+    await ajustarStockProducto(productoAAjustarStock.id, input);
+  };
+
   return (
+
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
       {/* Encabezado Superior Mobile-First */}
       <header className="bg-white/80 backdrop-blur border-b border-stone-200/80 sticky top-0 z-30 px-4 py-3">
@@ -314,6 +339,7 @@ export const App: React.FC = () => {
             error={errorProduccion}
             onAbrirNuevoModal={() => handleAbrirNuevaProduccion()}
             onCocinarProducto={(prodId) => handleAbrirNuevaProduccion(prodId)}
+            onAjustarStock={handleAbrirAjusteStock}
             onEliminarLote={handleAbrirEliminarLote}
             onReintentar={() => {
               recargarProduccion();
@@ -322,6 +348,7 @@ export const App: React.FC = () => {
             }}
           />
         )}
+
 
         {pestana === 'ventas' && (
           <section className="space-y-4">
@@ -438,7 +465,16 @@ export const App: React.FC = () => {
         onGuardar={handleGuardarProduccion}
       />
 
+      {/* Modal accesible de ajuste manual de stock de freezer (SPEC-003.1) */}
+      <ModalAjusteStockProducto
+        abierto={modalAjusteStockAbierto}
+        producto={productoAAjustarStock}
+        onCerrar={handleCerrarAjusteStock}
+        onGuardar={handleGuardarAjusteStock}
+      />
+
       {/* Modal accesible de confirmación de anulación de lote de producción */}
+
       <ModalConfirmacion
         abierto={Boolean(loteAEliminar)}
         titulo="Anular Lote de Producción"

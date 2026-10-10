@@ -5,8 +5,11 @@ import {
   CategoriaProducto,
   UnidadVenta,
   RecetaIngredienteItem,
+  AjusteStockProductoInput,
 } from '../../domain/models/producto.ts';
+
 import { UnidadMedida } from '../../domain/models/materiaPrima.ts';
+import { validarDatosAjusteStock } from '../../domain/services/produccionServicio.ts';
 
 export interface RecetaIngredienteFilaConMateriaPrima {
   id: string;
@@ -301,7 +304,48 @@ export class ProductoRepositorio {
   }
 
   /**
+   * Realiza un ajuste manual del stock físico del producto en freezer (SPEC-003.1).
+   * No modifica materias primas ya que los insumos fueron consumidos al cocinarse el lote.
+   */
+  async ajustarStock(id: string, input: AjusteStockProductoInput): Promise<Producto> {
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Debe especificar un producto válido.');
+    }
+
+    if (!input || typeof input !== 'object') {
+      throw new Error('Debe especificar los datos del ajuste.');
+    }
+
+    const validacion = validarDatosAjusteStock(input.nuevoStock, input.motivo);
+    if (!validacion.valido || validacion.nuevoStockNormalizado === undefined) {
+      throw new Error(validacion.error || 'Datos de ajuste inválidos.');
+    }
+
+    const nuevoStock = validacion.nuevoStockNormalizado;
+
+    const { error: errorUpdate } = await this.cliente
+      .from('productos')
+      .update({
+        stock_actual: nuevoStock,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (errorUpdate) {
+      throw new Error(`Error al ajustar stock del producto: ${errorUpdate.message}`);
+    }
+
+    const productoCompleto = await this.obtenerPorId(id);
+    if (!productoCompleto) {
+      throw new Error('No se pudo recuperar el producto tras el ajuste.');
+    }
+
+    return productoCompleto;
+  }
+
+  /**
    * Elimina un producto por su id. Sus ingredientes se eliminan en cascada.
+
    */
   async eliminar(id: string): Promise<void> {
     const { error } = await this.cliente

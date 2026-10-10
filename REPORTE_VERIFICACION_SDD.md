@@ -340,3 +340,149 @@ dist/assets/index-CPTy5Pvb.js     306.51 kB │ gzip: 87.38 kB
 - **Pruebas Automatizadas:** 44/44 tests exitosos en Vitest (0 fallas).
 - **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
 - **Auditoría Chrome DevTools:** 0 errores de consola, 0 issues de a11y, árbol accesible verificado, persistencia en caliente comprobada con ciclo bidireccional de elaboración y anulación.
+
+---
+
+# Reporte Oficial de Verificación SDD: Ajuste Manual de Stock de Congelados (SPEC-003.1)
+
+- **Módulo Principal:** `SPEC-003.1` (Ajuste Manual de Stock de Freezer, Salidas Operativas y Aislamiento de Materias Primas)
+- **Módulo Padre:** `SPEC-003` (Producción y Control de Freezer)
+- **Fecha de Auditoría:** 2026-10-10
+- **Auditor:** Subagente Verificador / Auditor (@reviewer)
+- **Veredicto Final:** **APROBADO (100% Verificado, Probado en Caliente y Listo para Producción)**
+
+---
+
+## 1. Alcance Auditado y Verificado (SPEC-003.1)
+
+Se auditaron y validaron de punta a punta las 6 tareas atómicas de [`specs/003-produccion-stock/tasks-003.1.md`](file:///home/tomas/lo-de-caro/specs/003-produccion-stock/tasks-003.1.md):
+
+1. **Tarea 1: Modelo de Dominio de Productos**
+   - Incorporación de los tipos `MotivoAjusteStock` ('Consumo personal', 'Regalo / Degustación', 'Merma / Rotura', 'Ajuste de inventario') y `AjusteStockProductoInput` en [`src/domain/models/producto.ts`](file:///home/tomas/lo-de-caro/src/domain/models/producto.ts).
+
+2. **Tarea 2: Método `ajustarStock` en Repositorio de Infraestructura (TDD con Vitest)**
+   - Implementación de `ajustarStock(id, input)` en [`src/infrastructure/repositories/productoRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/productoRepositorio.ts).
+   - Validación estricta que impide valores negativos (`nuevoStock >= 0`) y verifica motivos permitidos.
+   - Aislamiento transaccional: actualiza únicamente la tabla `productos` sin tocar `materias_primas` ni `receta_ingredientes`.
+   - 4 nuevas pruebas unitarias en [`tests/infrastructure/productoRepositorio.test.ts`](file:///home/tomas/lo-de-caro/tests/infrastructure/productoRepositorio.test.ts) cubriendo éxito, rechazo de negativos, rechazo de motivos inválidos y verificación de que `materias_primas` no fue invocado.
+
+3. **Tarea 3: Extensión del Hook `useProductosRecetas`**
+   - Agregada la función reactiva `ajustarStockProducto` en [`src/presentation/hooks/useProductosRecetas.ts`](file:///home/tomas/lo-de-caro/src/presentation/hooks/useProductosRecetas.ts) para actualizar el estado inmutable local sin necesidad de refrescar la página.
+
+4. **Tarea 4: Componente Accesible `ModalAjusteStockProducto`**
+   - Creación de [`src/presentation/components/ModalAjusteStockProducto.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalAjusteStockProducto.tsx) con:
+     - Foco automático en el input numérico al abrir.
+     - Soporte completo de tecla `Escape` y áreas táctiles mínimas de 44x44px.
+     - Botones de ajuste rápido (-5, -1, +1, +5).
+     - Cálculo interactivo de la variación de inventario ($\Delta$) con badge semafórico.
+     - Selector de motivo obligatorio con 4 opciones cerradas.
+     - Campo de notas/observaciones opcional.
+     - Banner de advertencia visual claro que informa que el ajuste no altera materias primas.
+     - Cumplimiento estricto de los 5 estados obligatorios (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`).
+
+5. **Tarea 5: Botón "Ajustar Stock" en `ListaProduccion` e Integración en `App.tsx`**
+   - Integración del botón accesible "Ajustar Stock" en cada tarjeta de producto en [`src/presentation/components/ListaProduccion.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaProduccion.tsx).
+   - Coordinación de estados y renderizado del modal en [`src/App.tsx`](file:///home/tomas/lo-de-caro/src/App.tsx).
+
+6. **Tarea 6: Verificación Integral en Caliente con DevTools y Build**
+   - Auditoría en caliente con Chrome DevTools en `http://localhost:5173/`:
+     - Apertura del modal, ajuste rápido con botón `-5`, carga de observación y confirmación.
+     - Verificación en vivo: el stock en freezer de Raviolones pasó de 20 a 15 porciones inmediatamente.
+     - Comprobación en solapa "Materias Primas": Harina (10 kg), Huevos (18 u) y Pimientos (10 kg) quedaron 100% inalterados.
+     - Verificación de cierre accesible con tecla `Escape` en modal de Tallarines.
+     - 0 errores de consola, árbol de accesibilidad semántico verificado.
+
+---
+
+## 2. Evidencias Empíricas de Calidad
+
+### Pruebas Unitarias Automatizadas (Vitest)
+```bash
+$ npm test
+
+ RUN  v3.2.7 /home/tomas/lo-de-caro
+
+ ✓ tests/domain/calculadorCostos.test.ts (8 tests)
+ ✓ tests/domain/produccionServicio.test.ts (16 tests)
+ ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests)
+ ✓ tests/infrastructure/productoRepositorio.test.ts (16 tests)
+ ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (9 tests)
+
+ Test Files  5 passed (5)
+      Tests  60 passed (60)
+   Duration  1.08s
+```
+- **Total de pruebas:** 60 tests automatizados ejecutados y 100% aprobados (16 tests de dominio en `produccionServicio`, 16 tests de infraestructura en `productoRepositorio`).
+
+---
+
+### Compilación y Bundle de Producción (`tsc && vite build`)
+```bash
+$ npm run build
+
+> lo-de-caro@0.1.0 build
+> tsc && vite build
+
+vite v6.4.4 building for production...
+✓ 90 modules transformed.
+dist/index.html                     1.21 kB │ gzip:  0.63 kB
+dist/assets/index-8MUYcnRA.css     24.99 kB │ gzip:  5.13 kB
+dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip: 58.90 kB
+dist/assets/index-qc6ebzJg.js     318.66 kB │ gzip: 89.84 kB
+✓ built in 2.35s
+```
+- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de compilación).
+
+---
+
+### Auditoría en Vivo en Navegador (Chrome DevTools en `http://localhost:5173/`)
+
+1. **Consola de JavaScript:**
+   - **Resultado:** **0 errores, 0 advertencias, 0 logs huérfanos**.
+2. **Árbol de Accesibilidad (A11y Tree Snapshot):**
+   - Botón accesible `button "Ajustar stock de freezer de Raviolones de Verdura y Ricotta"`.
+   - Diálogo modal con `role="dialog"`, `aria-modal="true"`, `aria-labelledby="titulo-modal-ajuste-stock"`, `aria-describedby="descripcion-modal-ajuste-stock"`.
+   - Foco cautivo automático inicial en `spinbutton "Nuevo stock físico contado: *"`.
+   - Restauración automática del foco al botón activador al cerrar el modal (teclado / Escape / botón cerrar).
+   - Soporte completo de tecla `Escape` y cierre por click fuera del contenedor (overlay accesible).
+   - Desactivación reactiva de botones de decremento rápido (`-5`, `-1`) cuando el stock actual es 0 para evitar decrementos bajo cero.
+   - Indicador visual preciso de variación de inventario ($\Delta$) con validación explícita para valores negativos ("Inválido (no puede ser negativo)").
+   - Cumplimiento de los 5 estados obligatorios en cada control UI.
+3. **Prueba en Caliente:**
+   - **Ajuste de Raviolones de Verdura y Ricotta:** Stock ajustado de 20 a 15 porciones con motivo "Consumo personal / familiar" y nota "Almuerzo familiar domingo".
+   - **Aislamiento verificado:** El stock de materias primas crudas (Harina, Huevos, Pimientos) no sufrió ninguna variación.
+   - **Validación defensiva:** Verificación de rechazo de coerción a cero para valores `null`, `false` o strings vacíos.
+4. **Capturas de Pantalla Generadas:**
+   - [`evidencia_ajuste_stock_modal.png`](file:///home/tomas/lo-de-caro/evidencia_ajuste_stock_modal.png): Modal abierto con indicador de variación en tiempo real y botones de ajuste rápido.
+   - [`evidencia_ajuste_stock_freezer.png`](file:///home/tomas/lo-de-caro/evidencia_ajuste_stock_freezer.png): Vista de freezer con stock actualizado.
+
+---
+
+## 3. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
+
+### Tarea 1 & Tarea 2: Modelo de Dominio y Repositorio Supabase
+- **CÓMO:** Se extendieron los tipos de producto (`MotivoAjusteStock`, `AjusteStockProductoInput`), se implementó la validación pura en el dominio (`validarDatosAjusteStock` y `calcularVariacionAjusteStock` en `produccionServicio.ts`) y `ajustarStock()` en `ProductoRepositorio` con validación estricta que previene la coerción implícita de `null`/`false` a 0 en JavaScript, con aislamiento total respecto de `materias_primas`.
+- **POR QUÉ:** Las comidas retiradas para consumo o mermas ya fueron elaboradas; alterar los insumos crudos provocaría un falso descuento o reposición fantasma en la alacena. Prevenir la coerción implícita evita corrupciones silenciosas del stock.
+- **PARA QUÉ:** Caro mantiene la concordancia exacta entre el conteo físico de su freezer y el sistema sin descalibrar el stock de insumos ni sufrir reseteos accidentales a cero.
+
+### Tarea 3, Tarea 4 & Tarea 5: Hook Reactivo, Modal Accesible y Lista de Producción
+- **CÓMO:** Se construyó `ModalAjusteStockProducto` con botones táctiles (-5, -1, +1, +5), badge de variación en vivo, prevención de doble envío por concurrencia, restauración de foco al cerrar, selector de motivo y banner aclaratorio; se integró el botón de ajuste en `ListaProduccion` y se conectó reactivamente con el hook `useProductosRecetas`.
+- **POR QUÉ:** Cumple las normativas WCAG AA, la regla de los 5 estados interactivos y optimiza el uso táctil en cocina (evitando escribir números con teclado en pantalla salvo que sea necesario).
+- **PARA QUÉ:** Caro puede asentar en 2 toques que sacó una caja de ravioles para cenar sin fricción.
+
+---
+
+## 4. Veredicto Formal General
+
+```
+=====================================================
+              VEREDICTO SPEC-003.1: APROBADO
+         Listo para Producción e Integración
+=====================================================
+```
+- **Conformidad de Especificación:** 100% de requisitos cubiertos (`RF-01` a `RF-05`).
+- **Pruebas Automatizadas:** 60/60 tests exitosos en Vitest (0 fallas).
+- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
+- **Auditoría Chrome DevTools:** 0 errores de consola, árbol de accesibilidad verificado, restauración de foco comprobada, persistencia en caliente probada y aislamiento de materias primas comprobado.
+
+

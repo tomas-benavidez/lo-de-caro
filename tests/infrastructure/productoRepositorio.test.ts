@@ -397,4 +397,159 @@ describe('ProductoRepositorio & Mapeadores', () => {
     expect(resultado.nombre).toBe('Fideos Caseros Premium');
     expect(resultado.precioLista).toBe(4800);
   });
+
+  describe('ajustarStock (Ajuste Manual de Stock de Congelados en Freezer)', () => {
+    it('debe ajustar el stock físico en productos sin alterar materias primas', async () => {
+      const productoAjustadoFila: ProductoFila = {
+        id: 'prod-10',
+        nombre: 'Ravioles de Espinaca',
+        categoria: 'Pastas Rellenas',
+        unidad_venta: 'Porcion',
+        precio_lista: 5000,
+        stock_actual: 8, // Nuevo stock ajustado
+        stock_minimo: 5,
+        activo: true,
+        receta_ingredientes: [],
+      };
+
+      const mockUpdateEq = vi.fn().mockResolvedValue({ error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq });
+
+      const mockSelectEq = vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: productoAjustadoFila,
+          error: null,
+        }),
+      });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockSelectEq });
+
+      const fromCalls: string[] = [];
+      const supabaseMock = {
+        from: vi.fn((tabla: string) => {
+          fromCalls.push(tabla);
+          if (tabla === 'productos') {
+            return {
+              update: mockUpdate,
+              select: mockSelect,
+            };
+          }
+          return {};
+        }),
+      };
+
+      const repo = new ProductoRepositorio(supabaseMock as any);
+      const resultado = await repo.ajustarStock('prod-10', {
+        nuevoStock: 8,
+        motivo: 'Consumo personal',
+        observaciones: 'Cena familiar del viernes',
+      });
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stock_actual: 8,
+        })
+      );
+      expect(mockUpdateEq).toHaveBeenCalledWith('id', 'prod-10');
+      expect(resultado.stockActual).toBe(8);
+      // Garantizar que NO se tocó materias_primas ni receta_ingredientes
+      expect(fromCalls).not.toContain('materias_primas');
+      expect(fromCalls).not.toContain('receta_ingredientes');
+    });
+
+    it('debe rechazar ajuste cuando el nuevo stock es negativo', async () => {
+      const supabaseMock = { from: vi.fn() };
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(
+        repo.ajustarStock('prod-10', {
+          nuevoStock: -3,
+          motivo: 'Merma / Rotura',
+        })
+      ).rejects.toThrow('El stock físico no puede ser negativo.');
+
+      expect(supabaseMock.from).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar ajuste con motivo inválido', async () => {
+      const supabaseMock = { from: vi.fn() };
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(
+        repo.ajustarStock('prod-10', {
+          nuevoStock: 5,
+          motivo: 'Motivo inventado' as any,
+        })
+      ).rejects.toThrow('Debe especificar un motivo válido de ajuste.');
+
+      expect(supabaseMock.from).not.toHaveBeenCalled();
+    });
+
+    it('debe lanzar error cuando la actualización de Supabase falla', async () => {
+      const mockUpdateEq = vi.fn().mockResolvedValue({
+        error: { message: 'Conexión rechazada' },
+      });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq });
+
+      const supabaseMock = {
+        from: vi.fn().mockReturnValue({
+          update: mockUpdate,
+        }),
+      };
+
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(
+        repo.ajustarStock('prod-10', {
+          nuevoStock: 4,
+          motivo: 'Ajuste de inventario',
+        })
+      ).rejects.toThrow('Error al ajustar stock del producto: Conexión rechazada');
+    });
+
+    it('debe rechazar id de producto vacío, con espacios o inválido', async () => {
+      const supabaseMock = { from: vi.fn() };
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(
+        repo.ajustarStock('', { nuevoStock: 5, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un producto válido.');
+
+      await expect(
+        repo.ajustarStock('   ', { nuevoStock: 5, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un producto válido.');
+    });
+
+    it('debe rechazar cuando nuevoStock es null, booleano o string vacío sin coerción a cero', async () => {
+      const supabaseMock = { from: vi.fn() };
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(
+        repo.ajustarStock('prod-10', { nuevoStock: null as any, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un stock físico numérico válido.');
+
+      await expect(
+        repo.ajustarStock('prod-10', { nuevoStock: false as any, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un stock físico numérico válido.');
+
+      await expect(
+        repo.ajustarStock('prod-10', { nuevoStock: '' as any, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un stock físico numérico válido.');
+
+      await expect(
+        repo.ajustarStock('prod-10', { nuevoStock: NaN, motivo: 'Consumo personal' })
+      ).rejects.toThrow('Debe especificar un stock físico numérico válido.');
+
+      expect(supabaseMock.from).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar cuando input de ajuste es nulo o indefinido', async () => {
+      const supabaseMock = { from: vi.fn() };
+      const repo = new ProductoRepositorio(supabaseMock as any);
+
+      await expect(repo.ajustarStock('prod-10', null as any)).rejects.toThrow(
+        'Debe especificar los datos del ajuste.'
+      );
+    });
+  });
 });
+

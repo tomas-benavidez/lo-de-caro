@@ -38,3 +38,16 @@ export interface Producto {
   fechaCreacion?: string;
   fechaActualizacion?: string;
 }
+
+export type MotivoAjusteStock =
+  | 'Consumo personal'
+  | 'Regalo / Degustación'
+  | 'Merma / Rotura'
+  | 'Ajuste de inventario';
+
+export interface AjusteStockProductoInput {
+  nuevoStock: number;
+  motivo: MotivoAjusteStock;
+  observaciones?: string;
+}
+

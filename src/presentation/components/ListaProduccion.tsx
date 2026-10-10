@@ -11,6 +11,7 @@ export interface ListaProduccionProps {
   error: string | null;
   onAbrirNuevoModal: () => void;
   onCocinarProducto?: (productoId: string) => void;
+  onAjustarStock?: (producto: Producto) => void;
   onEliminarLote?: (lote: LoteProduccion) => void;
   onReintentar?: () => void;
 }
@@ -37,9 +38,11 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
   error,
   onAbrirNuevoModal,
   onCocinarProducto,
+  onAjustarStock,
   onEliminarLote,
   onReintentar,
 }) => {
+
   const [vistaActiva, setVistaActiva] = useState<'freezer' | 'historial'>('freezer');
   const [filtroStock, setFiltroStock] = useState<'todos' | 'reponer' | 'ok'>('todos');
   const [busqueda, setBusqueda] = useState('');
@@ -308,26 +311,40 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                         </span>
                       )}
 
-                      {onCocinarProducto && (
-                        prod.ingredientes && prod.ingredientes.length > 0 ? (
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {onAjustarStock && (
                           <button
                             type="button"
-                            onClick={() => onCocinarProducto(prod.id)}
-                            className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-marca-canela hover:text-white hover:bg-marca-canela active:bg-[#7b4629] border border-marca-canela/40 hover:border-marca-canela rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
-                            aria-label={`Cocinar tanda de ${prod.nombre}`}
+                            onClick={() => onAjustarStock(prod)}
+                            className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 active:bg-stone-300 border border-stone-200 hover:border-stone-300 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label={`Ajustar stock de freezer de ${prod.nombre}`}
                           >
-                            + Cocinar
+                            Ajustar Stock
                           </button>
-                        ) : (
-                          <span
-                            className="text-[10px] text-stone-400 italic py-1 px-2 border border-dashed border-stone-200 rounded-lg text-center select-none"
-                            title="Definí los ingredientes en la solapa Recetas antes de cocinar"
-                          >
-                            Sin receta
-                          </span>
-                        )
-                      )}
+                        )}
+
+                        {onCocinarProducto && (
+                          prod.ingredientes && prod.ingredientes.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => onCocinarProducto(prod.id)}
+                              className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-marca-canela hover:text-white hover:bg-marca-canela active:bg-[#7b4629] border border-marca-canela/40 hover:border-marca-canela rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label={`Cocinar tanda de ${prod.nombre}`}
+                            >
+                              + Cocinar
+                            </button>
+                          ) : (
+                            <span
+                              className="text-[10px] text-stone-400 italic py-1 px-2 border border-dashed border-stone-200 rounded-lg text-center select-none"
+                              title="Definí los ingredientes en la solapa Recetas antes de cocinar"
+                            >
+                              Sin receta
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
+
                   </div>
                 </div>
               );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Producto } from '../../domain/models/producto.ts';
+import { Producto, AjusteStockProductoInput } from '../../domain/models/producto.ts';
 import {
   ProductoRepositorio,
   productoRepositorio as repositorioPorDefecto,
@@ -21,8 +21,13 @@ export interface UseProductosRecetasResultado {
     producto: Partial<NuevoProductoInput>,
     ingredientes?: NuevoIngredienteRecetaInput[]
   ) => Promise<Producto>;
+  ajustarStockProducto: (
+    id: string,
+    input: AjusteStockProductoInput
+  ) => Promise<Producto>;
   eliminarProductoReceta: (id: string) => Promise<void>;
 }
+
 
 /**
  * Hook de aplicación para gestionar el ciclo de vida, recetas y mutaciones de productos.
@@ -93,6 +98,25 @@ export function useProductosRecetas(
     [repositorio]
   );
 
+  const ajustarStockProducto = useCallback(
+    async (id: string, input: AjusteStockProductoInput): Promise<Producto> => {
+      setError(null);
+      try {
+        const actualizado = await repositorio.ajustarStock(id, input);
+        setProductos((previos) => {
+          const actualizados = previos.map((item) => (item.id === id ? actualizado : item));
+          return actualizados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+        return actualizado;
+      } catch (err) {
+        const mensaje = err instanceof Error ? err.message : 'Error al ajustar stock del producto';
+        setError(mensaje);
+        throw err;
+      }
+    },
+    [repositorio]
+  );
+
   const eliminarProductoReceta = useCallback(
     async (id: string): Promise<void> => {
       setError(null);
@@ -119,6 +143,8 @@ export function useProductosRecetas(
     recargar,
     crearProductoReceta,
     actualizarProductoReceta,
+    ajustarStockProducto,
     eliminarProductoReceta,
   };
 }
+

@@ -1,4 +1,4 @@
-import { RecetaIngredienteItem } from '../models/producto.ts';
+import { RecetaIngredienteItem, MotivoAjusteStock } from '../models/producto.ts';
 import { MateriaPrima } from '../models/materiaPrima.ts';
 import {
   EstadoStockCongelado,
@@ -74,3 +74,68 @@ export function calcularConsumoIngredientes(
     hayStockInsuficiente,
   };
 }
+
+export const MOTIVOS_AJUSTE_VALIDOS: readonly MotivoAjusteStock[] = [
+  'Consumo personal',
+  'Regalo / Degustación',
+  'Merma / Rotura',
+  'Ajuste de inventario',
+] as const;
+
+/**
+ * Calcula la variación neta de un ajuste de stock físico respecto al stock registrado.
+ * Valores positivos representan aumentos/sobrantes, valores negativos representan retiros/mermas.
+ */
+export function calcularVariacionAjusteStock(
+  stockActual: number,
+  nuevoStock: number
+): number {
+  const actual = Number(stockActual) || 0;
+  const nuevo = Number(nuevoStock) || 0;
+  return Math.round((nuevo - actual) * 1000) / 1000;
+}
+
+export interface ResultadoValidacionAjuste {
+  valido: boolean;
+  error?: string;
+  nuevoStockNormalizado?: number;
+}
+
+/**
+ * Valida de forma estricta los datos para un ajuste manual de stock en el dominio gastronómico.
+ */
+export function validarDatosAjusteStock(
+  nuevoStock: unknown,
+  motivo?: unknown
+): ResultadoValidacionAjuste {
+  if (
+    nuevoStock === null ||
+    nuevoStock === undefined ||
+    typeof nuevoStock === 'boolean' ||
+    (typeof nuevoStock === 'string' && nuevoStock.trim() === '')
+  ) {
+    return { valido: false, error: 'Debe especificar un stock físico numérico válido.' };
+  }
+
+  const num = Number(nuevoStock);
+  if (!Number.isFinite(num)) {
+    return { valido: false, error: 'Debe especificar un stock físico numérico válido.' };
+  }
+
+  if (num < 0) {
+    return { valido: false, error: 'El stock físico no puede ser negativo.' };
+  }
+
+  if (
+    motivo !== undefined &&
+    (!motivo || !MOTIVOS_AJUSTE_VALIDOS.includes(motivo as MotivoAjusteStock))
+  ) {
+    return { valido: false, error: 'Debe especificar un motivo válido de ajuste.' };
+  }
+
+  return {
+    valido: true,
+    nuevoStockNormalizado: Math.round(num * 1000) / 1000,
+  };
+}
+

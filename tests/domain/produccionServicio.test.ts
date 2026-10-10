@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   clasificarStockCongelado,
   calcularConsumoIngredientes,
+  calcularVariacionAjusteStock,
+  validarDatosAjusteStock,
 } from '../../src/domain/services/produccionServicio.ts';
 import { RecetaIngredienteItem } from '../../src/domain/models/producto.ts';
 import { MateriaPrima } from '../../src/domain/models/materiaPrima.ts';
@@ -159,6 +161,63 @@ describe('Servicio de Dominio: Producción y Stock de Congelados', () => {
       expect(resultado.cantidadElaborada).toBe(0);
       expect(resultado.hayStockInsuficiente).toBe(false);
       expect(resultado.ingredientes[0].cantidadTotalConsumida).toBe(0);
+    });
+  });
+
+  describe('calcularVariacionAjusteStock', () => {
+    it('debe calcular variaciones positivas para aumentos de stock', () => {
+      expect(calcularVariacionAjusteStock(10, 15)).toBe(5);
+      expect(calcularVariacionAjusteStock(0, 8.5)).toBe(8.5);
+    });
+
+    it('debe calcular variaciones negativas para retiros de stock', () => {
+      expect(calcularVariacionAjusteStock(20, 15)).toBe(-5);
+      expect(calcularVariacionAjusteStock(10, 0)).toBe(-10);
+    });
+
+    it('debe retornar 0 si no hay cambios', () => {
+      expect(calcularVariacionAjusteStock(12, 12)).toBe(0);
+    });
+  });
+
+  describe('validarDatosAjusteStock', () => {
+    it('debe validar exitosamente números válidos y redondear a 3 decimales', () => {
+      const res = validarDatosAjusteStock(12.3456, 'Consumo personal');
+      expect(res.valido).toBe(true);
+      expect(res.nuevoStockNormalizado).toBe(12.346);
+    });
+
+    it('debe aceptar 0 como stock válido', () => {
+      const res = validarDatosAjusteStock(0, 'Merma / Rotura');
+      expect(res.valido).toBe(true);
+      expect(res.nuevoStockNormalizado).toBe(0);
+    });
+
+    it('debe rechazar null, undefined, booleanos y strings vacíos', () => {
+      expect(validarDatosAjusteStock(null).valido).toBe(false);
+      expect(validarDatosAjusteStock(undefined).valido).toBe(false);
+      expect(validarDatosAjusteStock(false).valido).toBe(false);
+      expect(validarDatosAjusteStock(true).valido).toBe(false);
+      expect(validarDatosAjusteStock('').valido).toBe(false);
+      expect(validarDatosAjusteStock('   ').valido).toBe(false);
+    });
+
+    it('debe rechazar números negativos', () => {
+      const res = validarDatosAjusteStock(-1, 'Consumo personal');
+      expect(res.valido).toBe(false);
+      expect(res.error).toBe('El stock físico no puede ser negativo.');
+    });
+
+    it('debe rechazar valores no finitos (NaN, Infinity)', () => {
+      expect(validarDatosAjusteStock(NaN).valido).toBe(false);
+      expect(validarDatosAjusteStock(Infinity).valido).toBe(false);
+      expect(validarDatosAjusteStock(-Infinity).valido).toBe(false);
+    });
+
+    it('debe rechazar motivos no autorizados', () => {
+      const res = validarDatosAjusteStock(5, 'Robo no registrado' as any);
+      expect(res.valido).toBe(false);
+      expect(res.error).toBe('Debe especificar un motivo válido de ajuste.');
     });
   });
 });
