@@ -57,7 +57,7 @@ export const ModalRegistroProduccion: React.FC<ModalRegistroProduccionProps> = (
       const hoy = new Date().toISOString().split('T')[0];
       setFecha(hoy);
 
-      if (productoIdInicial && productos.some((p) => p.id === productoIdInicial)) {
+      if (productoIdInicial && productosConReceta.some((p) => p.id === productoIdInicial)) {
         setProductoSeleccionadoId(productoIdInicial);
       } else if (productosConReceta.length > 0) {
         setProductoSeleccionadoId(productosConReceta[0].id);
@@ -190,7 +190,7 @@ export const ModalRegistroProduccion: React.FC<ModalRegistroProduccionProps> = (
             onClick={onCerrar}
             disabled={guardando}
             aria-label="Cerrar modal"
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-700 active:text-stone-900 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-700 active:text-stone-900 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ✕
           </button>
@@ -275,7 +275,7 @@ export const ModalRegistroProduccion: React.FC<ModalRegistroProduccionProps> = (
                     type="button"
                     onClick={() => handleSumarCantidad(num)}
                     disabled={guardando}
-                    className="min-h-[44px] min-w-[44px] px-2 py-1 text-xs font-bold bg-white hover:bg-stone-100 active:bg-stone-200 border border-stone-300 rounded-lg text-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
+                    className="min-h-[44px] min-w-[44px] px-2 py-1 text-xs font-bold bg-white hover:bg-stone-100 active:bg-stone-200 border border-stone-300 rounded-lg text-stone-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     +{num}
                   </button>
@@ -395,7 +395,8 @@ export const ModalRegistroProduccion: React.FC<ModalRegistroProduccionProps> = (
                       type="checkbox"
                       checked={confirmarStockInsuficiente}
                       onChange={(e) => setConfirmarStockInsuficiente(e.target.checked)}
-                      className="rounded border-stone-300 text-marca-canela focus:ring-marca-canela h-4 w-4"
+                      disabled={guardando}
+                      className="rounded border-stone-300 text-marca-canela hover:border-marca-canela active:border-marca-canela focus:ring-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed h-4 w-4 transition-colors"
                     />
                     <span>Confirmo que cociné el lote a pesar del stock negativo proyectado</span>
                   </label>

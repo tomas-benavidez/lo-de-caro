@@ -438,16 +438,16 @@ export const App: React.FC = () => {
         onGuardar={handleGuardarProduccion}
       />
 
-      {/* Modal accesible de confirmación de eliminación de lote de producción */}
+      {/* Modal accesible de confirmación de anulación de lote de producción */}
       <ModalConfirmacion
         abierto={Boolean(loteAEliminar)}
-        titulo="Eliminar Lote de Producción"
+        titulo="Anular Lote de Producción"
         mensaje={
           loteAEliminar
-            ? `¿Estás segura de que deseás eliminar el lote de "${loteAEliminar.nombreProducto}" (${loteAEliminar.cantidadElaborada} ${loteAEliminar.unidadVenta}) del ${loteAEliminar.fecha}? Esta acción borrará el registro del historial.`
+            ? `¿Estás segura de que deseás anular el lote de "${loteAEliminar.nombreProducto}" (${loteAEliminar.cantidadElaborada} ${loteAEliminar.unidadVenta}) del ${loteAEliminar.fecha}? Esta acción descontará las unidades elaboradas del freezer y restituirá los insumos consumidos al stock de materias primas.`
             : ''
         }
-        textoConfirmar="Eliminar definitivamente"
+        textoConfirmar="Anular lote y restituir stock"
         textoCancelar="Cancelar"
         confirmando={confirmandoEliminacionLote}
         error={errorEliminacionLote}

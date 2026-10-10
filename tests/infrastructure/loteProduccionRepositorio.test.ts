@@ -276,18 +276,268 @@ describe('LoteProduccionRepositorio & Mapeadores', () => {
       expect(deleteLoteMock).toHaveBeenCalledWith('id', 'lote-a-borrar');
     });
 
-    it('debe eliminar un lote por id', async () => {
-      const deleteMock = vi.fn().mockResolvedValue({ error: null });
-      mockSupabase.from.mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: deleteMock,
-        }),
+    it('debe registrar un lote consultando la receta en base de datos si no se pasaron ingredientes', async () => {
+      const nuevoLote: NuevoLoteProduccionInput = {
+        productoId: 'prod-1',
+        cantidadElaborada: 10,
+        fecha: '2026-10-10',
+      };
+
+      const mpUpdateMock = vi.fn().mockResolvedValue({ error: null });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'lotes_produccion') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'lote-db',
+                    fecha: '2026-10-10',
+                    producto_id: 'prod-1',
+                    cantidad_elaborada: 10,
+                    observaciones: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'lote-db',
+                    fecha: '2026-10-10',
+                    producto_id: 'prod-1',
+                    cantidad_elaborada: 10,
+                    productos: { id: 'prod-1', nombre: 'Tallarines', unidad_venta: 'Kilo' },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (tabla === 'receta_ingredientes') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'ri-1',
+                    materia_prima_id: 'mp-harina',
+                    cantidad: 0.5,
+                    materias_primas: { nombre: 'Harina', unidad_medida: 'kg' },
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          };
+        }
+        if (tabla === 'productos') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { stock_actual: 0 }, error: null }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            }),
+          };
+        }
+        if (tabla === 'materias_primas') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { stock_actual: 50 }, error: null }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: mpUpdateMock,
+            }),
+          };
+        }
+      });
+
+      const lote = await repositorio.registrarProduccion(nuevoLote);
+      expect(lote.id).toBe('lote-db');
+      expect(mpUpdateMock).toHaveBeenCalledWith('id', 'mp-harina');
+    });
+
+    it('debe anular un lote restituyendo materias primas y descontando el stock del producto en freezer', async () => {
+      const prodUpdateMock = vi.fn().mockResolvedValue({ error: null });
+      const mpUpdateMock = vi.fn().mockResolvedValue({ error: null });
+      const deleteLoteMock = vi.fn().mockResolvedValue({ error: null });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'lotes_produccion') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'lote-123', producto_id: 'prod-1', cantidad_elaborada: 10 },
+                  error: null,
+                }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({
+              eq: deleteLoteMock,
+            }),
+          };
+        }
+        if (tabla === 'productos') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'prod-1', stock_actual: 15, nombre: 'Raviolones' },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: prodUpdateMock,
+            }),
+          };
+        }
+        if (tabla === 'receta_ingredientes') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [{ materia_prima_id: 'mp-harina', cantidad: 0.3 }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        if (tabla === 'materias_primas') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'mp-harina', stock_actual: 22 },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: mpUpdateMock,
+            }),
+          };
+        }
       });
 
       await repositorio.eliminarLote('lote-123');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('lotes_produccion');
-      expect(deleteMock).toHaveBeenCalledWith('id', 'lote-123');
+      // Harina: 22 + (0.3 * 10) = 25 kg
+      expect(mpUpdateMock).toHaveBeenCalledWith('id', 'mp-harina');
+      // Producto: 15 - 10 = 5 unidades
+      expect(prodUpdateMock).toHaveBeenCalledWith('id', 'prod-1');
+      // Lote eliminado
+      expect(deleteLoteMock).toHaveBeenCalledWith('id', 'lote-123');
+    });
+
+    it('debe rechazar anular el lote si el stock actual en freezer es menor a la cantidad elaborada', async () => {
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'lotes_produccion') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'lote-123', producto_id: 'prod-1', cantidad_elaborada: 10 },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (tabla === 'productos') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'prod-1', stock_actual: 4, nombre: 'Raviolones' },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+      });
+
+      await expect(repositorio.eliminarLote('lote-123')).rejects.toThrow(
+        /No se puede anular el lote: el stock actual en freezer \(4\) es menor a la cantidad elaborada \(10\)/
+      );
+    });
+
+    it('debe ejecutar rollback defensivo si falla la eliminacion del lote en la base de datos', async () => {
+      const rollbackMpMock = vi.fn().mockResolvedValue({ error: null });
+      const rollbackProdMock = vi.fn().mockResolvedValue({ error: null });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'lotes_produccion') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'lote-123', producto_id: 'prod-1', cantidad_elaborada: 5 },
+                  error: null,
+                }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: { message: 'Fallo al borrar lote' } }),
+            }),
+          };
+        }
+        if (tabla === 'productos') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'prod-1', stock_actual: 10, nombre: 'Tallarines' },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: rollbackProdMock,
+            }),
+          };
+        }
+        if (tabla === 'receta_ingredientes') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [{ materia_prima_id: 'mp-harina', cantidad: 0.5 }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        if (tabla === 'materias_primas') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'mp-harina', stock_actual: 20 },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: rollbackMpMock,
+            }),
+          };
+        }
+      });
+
+      await expect(repositorio.eliminarLote('lote-123')).rejects.toThrow(/Fallo al borrar lote/);
+
+      // Verificamos rollback de stock de producto a su valor previo (10)
+      expect(rollbackProdMock).toHaveBeenCalledWith('id', 'prod-1');
     });
   });
 });

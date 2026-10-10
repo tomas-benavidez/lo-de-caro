@@ -240,7 +240,7 @@ Se auditaron y validaron de punta a punta las 6 tareas atómicas de [`specs/003-
 ---
 
 ## 2. Evidencias Empíricas de Calidad
-
+ 
 ### Pruebas Unitarias Automatizadas (Vitest)
 ```bash
 $ npm test
@@ -251,13 +251,13 @@ $ npm test
  ✓ tests/domain/produccionServicio.test.ts (7 tests)
  ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests)
  ✓ tests/infrastructure/productoRepositorio.test.ts (9 tests)
- ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (6 tests)
+ ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (9 tests)
 
  Test Files  5 passed (5)
-      Tests  41 passed (41)
-   Duration  1.01s
+      Tests  44 passed (44)
+   Duration  1.05s
 ```
-- **Total de pruebas:** 41 tests automatizados ejecutados y 100% aprobados.
+- **Total de pruebas:** 44 tests automatizados ejecutados y 100% aprobados (incluyendo restitución de insumos al anular lotes, validación de stock en freezer y rollback defensivo).
 
 ---
 
@@ -271,10 +271,10 @@ $ npm run build
 vite v6.4.4 building for production...
 ✓ 89 modules transformed.
 dist/index.html                     1.21 kB │ gzip:  0.63 kB
-dist/assets/index-CPBebhYC.css     24.29 kB │ gzip:  5.02 kB
+dist/assets/index-Dr04tUzU.css     24.53 kB │ gzip:  5.05 kB
 dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip: 58.90 kB
-dist/assets/index-DjXYSsii.js     302.12 kB │ gzip: 86.54 kB
-✓ built in 2.53s
+dist/assets/index-CPTy5Pvb.js     306.51 kB │ gzip: 87.38 kB
+✓ built in 2.33s
 ```
 - **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de compilación).
 
@@ -283,43 +283,48 @@ dist/assets/index-DjXYSsii.js     302.12 kB │ gzip: 86.54 kB
 ### Auditoría en Vivo en Navegador (Chrome DevTools en `http://localhost:5173/`)
 
 1. **Consola de JavaScript:**
-   - **Resultado:** **0 errores, 0 advertencias, 0 logs huérfanos**.
+   - **Resultado:** **0 errores, 0 advertencias, 0 logs huérfanos, 0 issues de a11y**.
 2. **Árbol de Accesibilidad (A11y Tree Snapshot):**
    - Landmark accesible `heading "Producción y Freezer" level="2"`.
-   - Subsecciones con botones tabulables: `button "Stock de Congelados"`, `button "Historial de Lotes"`.
+   - Subsecciones con etiquetas explícitas y contadores contextuales: `button "Stock de Congelados (2 productos, 2 para reponer)"`, `button "Historial de Lotes (1 tandas elaboradas)"`.
+   - Buscador accesible con `<label htmlFor="buscador-produccion" className="sr-only">` y atributos `id` / `name` estandarizados.
    - Diálogo modal con `role="dialog"`, `aria-modal="true"`, `aria-labelledby="titulo-modal-produccion"`.
-   - Inputs con etiquetas explícitas asociadas (`htmlFor` y `id`), atributos `name` consistentes.
-   - Zonas táctiles mínimas de 44x44px en botones de ajuste rápido (+1, +5, +10), botón de cierre y botón de eliminar lote.
-3. **Prueba Transaccional en Caliente:**
-   - Se registró en vivo un lote de **10 porciones de Raviolones de Verdura y Ricotta**.
-   - **Impacto verificado en Supabase:**
-     - `productos`: Raviolones pasó de 0 porciones a **10 porciones** (cambió a badge verde `STOCK OK`).
-     - `materias_primas`: Harina 0000 Especial pasó de 25 kg a **22 kg** (-3 kg).
-     - `materias_primas`: Huevos pasó de 98 u a **78 u** (-20 u).
-     - `lotes_produccion`: Registro persistido con fecha `2026-10-10`, cantidad `10` y producto asociado.
+   - Cumplimiento estricto de los 5 estados interactivos obligatorios (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`) en botones, pills, inputs y checkboxes.
+   - Control preventivo de recetas: productos sin receta muestran badge "Sin receta" evitando estados inconsistentes.
+3. **Prueba Transaccional en Caliente (Ciclo Completo: Elaboración y Anulación):**
+   - **Ciclo 1: Anulación de Lote Previo (Restitución):**
+     - Se anuló el lote previo de 10 porciones de Raviolones.
+     - **Impacto:** Raviolones volvió a 0 porciones en freezer (`SIN STOCK`), Harina se restituyó de 22 a 25 kg (+3 kg) y Huevos de 78 a 98 u (+20 u).
+   - **Ciclo 2: Elaboración de Nueva Tanda:**
+     - Se registró una tanda de **5 porciones de Raviolones de Verdura y Ricotta**.
+     - **Impacto verificado en Supabase:**
+       - `productos`: Raviolones pasó a **5 porciones** (estado `REPONER`).
+       - `materias_primas`: Harina 0000 Especial pasó de 25 kg a **23.5 kg** (-1.5 kg).
+       - `materias_primas`: Huevos pasó de 98 u a **88 u** (-10 u).
+       - `lotes_produccion`: Registro persistido con fecha `2026-10-10`, cantidad `5` y trazabilidad completa.
 4. **Capturas de Pantalla Generadas:**
    - [`evidencia_produccion_freezer.png`](file:///home/tomas/lo-de-caro/evidencia_produccion_freezer.png): Stock de freezer con productos actualizados tras cocción.
    - [`evidencia_produccion_modal.png`](file:///home/tomas/lo-de-caro/evidencia_produccion_modal.png): Modal con simulador en vivo de consumo de materias primas y botones de ajuste rápido.
-   - [`evidencia_produccion_historial.png`](file:///home/tomas/lo-de-caro/evidencia_produccion_historial.png): Historial cronológico de tandas con trazabilidad y acción de eliminar.
+   - [`evidencia_produccion_historial.png`](file:///home/tomas/lo-de-caro/evidencia_produccion_historial.png): Historial cronológico de tandas con trazabilidad y acción de anular lote.
 
 ---
 
 ## 3. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
 
 ### Tarea 1 & Tarea 2: Modelo de Dominio y Repositorio Supabase
-- **CÓMO:** Se definieron entidades inmutables para el lote de producción y el simulador de consumo. En el repositorio se orquestó la transacción atómica: inserción del lote, incremento de producto terminado y descuento de insumos con rollback inverso ante cualquier anomalía.
-- **POR QUÉ:** La transaccionalidad previene que un fallo de conexión deje insumos descontados sin producto elaborado o viceversa.
-- **PARA QUÉ:** Caro puede confiar plenamente en que su inventario digital refleja exactamente lo que sucede en los fuegos de su cocina.
+- **CÓMO:** Se implementó `LoteProduccionRepositorio` con `registrarProduccion()` y `eliminarLote()` soportando el ciclo bidireccional completo: descuento/restitución de insumos y suma/resta de stock de freezer, validación contra stock negativo y rollback defensivo.
+- **POR QUÉ:** La anulación de lotes debe devolver físicamente los ingredientes a la alacena y retirar los productos del freezer para evitar descuadres de inventario.
+- **PARA QUÉ:** Caro puede anular tandas registradas por error sin descalibrar el stock de materias primas ni tener que corregir manualmente los kilos en la alacena.
 
 ### Tarea 3 & Tarea 4: Hook Reactivo y Componente `ListaProduccion`
-- **CÓMO:** Se creó `useProduccion` y la vista dual mobile-first `ListaProduccion` con filtros rápidos, búsqueda en vivo y botones de cocina directa.
-- **POR QUÉ:** Permite separar claramente la consulta rápida del freezer (para saber qué falta cocinar) del registro histórico de elaboración sin saturar la pantalla con tarjetas anidadas.
-- **PARA QUÉ:** Caro visualiza de un vistazo qué platos están a punto de agotarse en el freezer y puede accionar la cocción inmediatamente.
+- **CÓMO:** Se desacopló la vista dual mobile-first `ListaProduccion` con filtros rápidos, buscador accesible y controles con los 5 estados UI, distinguiendo platos con receta de platos pendientes.
+- **POR QUÉ:** Permite consultar el estado del freezer con claridad visual sin anidamiento excesivo y operar la cocina sin fricción.
+- **PARA QUÉ:** Caro sabe exactamente qué platos necesita cocinar hoy y puede disparar la tanda con un solo toque.
 
 ### Tarea 5 & Tarea 6: Modal con Simulador, 5 Estados e Integración
-- **CÓMO:** Se diseñó `ModalRegistroProduccion` con calculadora en vivo de consumo de insumos, selector con recetas existentes, botones +1/+5/+10 para carga ágil, advertencias visuales ante stock insuficiente y sincronización automática de las solapas de Materias Primas y Recetas.
-- **POR QUÉ:** Satisface la exigencia de los 5 estados obligatorios en cada control UI, garantiza accesibilidad total y evita bloqueos burocráticos si Caro necesita cocinar un lote con insumos pendientes de ingreso.
-- **PARA QUÉ:** Caro ahorra tiempo valioso al registrar tandas en segundos desde su celular sin calcular consumos de ingredientes a mano.
+- **CÓMO:** Se diseñó `ModalRegistroProduccion` con simulador de insumos en vivo, cálculo en tiempo real de stock remanente, alerta visual ante insumos faltantes y confirmación consciente.
+- **POR QUÉ:** Cumple las normativas de accesibilidad y 5 estados UI sin bloquear la cocina real en situaciones de emergencia.
+- **PARA QUÉ:** Caro planifica la cocción sabiendo de antemano si le alcanzan los ingredientes en alacena antes de ensuciar las ollas.
 
 ---
 
@@ -332,6 +337,6 @@ dist/assets/index-DjXYSsii.js     302.12 kB │ gzip: 86.54 kB
 =====================================================
 ```
 - **Conformidad de Especificación:** 100% de requisitos cubiertos (`RF-01` a `RF-05`).
-- **Pruebas Automatizadas:** 41/41 tests exitosos en Vitest (0 fallas).
+- **Pruebas Automatizadas:** 44/44 tests exitosos en Vitest (0 fallas).
 - **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
-- **Auditoría Chrome DevTools:** 0 errores de consola, árbol de accesibilidad verificado, persistencia en caliente comprobada.
+- **Auditoría Chrome DevTools:** 0 errores de consola, 0 issues de a11y, árbol accesible verificado, persistencia en caliente comprobada con ciclo bidireccional de elaboración y anulación.

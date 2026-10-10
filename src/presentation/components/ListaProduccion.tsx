@@ -143,10 +143,13 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
         <button
           type="button"
           onClick={() => setVistaActiva('freezer')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
+          aria-label={`Stock de Congelados (${productos.length} productos${
+            resumenFreezer.totalCriticos > 0 ? `, ${resumenFreezer.totalCriticos} para reponer` : ''
+          })`}
+          className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed ${
             vistaActiva === 'freezer'
               ? 'bg-marca-canela text-white shadow-sm'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50 active:bg-stone-100'
           }`}
         >
           Stock de Congelados ({productos.length})
@@ -165,10 +168,11 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
         <button
           type="button"
           onClick={() => setVistaActiva('historial')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
+          aria-label={`Historial de Lotes (${lotes.length} tandas elaboradas)`}
+          className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed ${
             vistaActiva === 'historial'
               ? 'bg-marca-canela text-white shadow-sm'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50 active:bg-stone-100'
           }`}
         >
           Historial de Lotes ({lotes.length})
@@ -178,7 +182,12 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
       {/* Buscador y Filtros */}
       <div className="space-y-2">
         <div className="relative">
+          <label htmlFor="buscador-produccion" className="sr-only">
+            Buscar productos en freezer o historial de lotes
+          </label>
           <input
+            id="buscador-produccion"
+            name="buscador-produccion"
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -187,13 +196,13 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                 ? 'Buscar producto en freezer...'
                 : 'Buscar por plato, fecha o nota...'
             }
-            className="w-full pl-3 pr-8 py-2 text-xs bg-white border border-stone-300 rounded-lg shadow-sm placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela"
+            className="w-full pl-3 pr-8 py-2 text-xs bg-white text-stone-900 border border-stone-300 rounded-lg shadow-sm placeholder:text-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
           />
           {busqueda && (
             <button
               type="button"
               onClick={() => setBusqueda('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs p-1"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 active:text-stone-800 text-xs p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Limpiar búsqueda"
             >
               ✕
@@ -218,10 +227,10 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                 key={f.id}
                 type="button"
                 onClick={() => setFiltroStock(f.id as typeof filtroStock)}
-                className={`px-2.5 py-1 text-xs rounded-full whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
+                className={`px-2.5 py-1 text-xs rounded-full whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed ${
                   filtroStock === f.id
                     ? 'bg-stone-800 text-white shadow-xs'
-                    : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
+                    : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 active:bg-stone-100'
                 }`}
               >
                 {f.label}
@@ -300,14 +309,23 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                       )}
 
                       {onCocinarProducto && (
-                        <button
-                          type="button"
-                          onClick={() => onCocinarProducto(prod.id)}
-                          className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-marca-canela hover:text-white hover:bg-marca-canela active:bg-[#7b4629] border border-marca-canela/40 hover:border-marca-canela rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela"
-                          aria-label={`Cocinar tanda de ${prod.nombre}`}
-                        >
-                          + Cocinar
-                        </button>
+                        prod.ingredientes && prod.ingredientes.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => onCocinarProducto(prod.id)}
+                            className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-marca-canela hover:text-white hover:bg-marca-canela active:bg-[#7b4629] border border-marca-canela/40 hover:border-marca-canela rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label={`Cocinar tanda de ${prod.nombre}`}
+                          >
+                            + Cocinar
+                          </button>
+                        ) : (
+                          <span
+                            className="text-[10px] text-stone-400 italic py-1 px-2 border border-dashed border-stone-200 rounded-lg text-center select-none"
+                            title="Definí los ingredientes en la solapa Recetas antes de cocinar"
+                          >
+                            Sin receta
+                          </span>
+                        )
                       )}
                     </div>
                   </div>
@@ -370,7 +388,7 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                   <button
                     type="button"
                     onClick={() => onEliminarLote(lote)}
-                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xs font-semibold text-stone-400 hover:text-marca-tomate hover:bg-red-50 active:bg-red-100 rounded-lg p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate"
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xs font-semibold text-stone-400 hover:text-marca-tomate hover:bg-red-50 active:bg-red-100 rounded-lg p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Anular o eliminar este lote"
                     aria-label={`Eliminar lote de ${lote.nombreProducto} del ${formatearFecha(lote.fecha)}`}
                   >
