@@ -156,7 +156,7 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
               key={cat}
               type="button"
               onClick={() => setCategoriaSeleccionada(cat)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
+              className={`px-3 py-2 min-h-[40px] text-xs font-semibold rounded-lg whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
                 seleccionada
                   ? 'bg-stone-800 text-white shadow-xs'
                   : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100 active:bg-stone-200'
@@ -199,13 +199,23 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
           role="list"
         >
           {productosFiltrados.map((producto) => {
-            const costoProduccion = calcularCostoReceta(producto.ingredientes);
+            const tieneIngredientes = producto.ingredientes.length > 0;
+            const costoProduccion = tieneIngredientes
+              ? calcularCostoReceta(producto.ingredientes)
+              : 0;
             const { margenPesos, margenPorcentaje } = calcularMargenGanancia(
               producto.precioLista,
               costoProduccion
             );
-            const estadoMargen = clasificarMargen(margenPorcentaje, margenPesos);
+            const estadoMargen = clasificarMargen(
+              margenPorcentaje,
+              margenPesos,
+              tieneIngredientes ? costoProduccion : 0,
+              producto.precioLista
+            );
             const expandida = Boolean(recetasExpandidas[producto.id]);
+            const unidadVentaLegible =
+              producto.unidadVenta === 'Porcion' ? 'Porción' : producto.unidadVenta;
 
             return (
               <li
@@ -223,9 +233,12 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
                         {producto.categoria}
                       </span>
                       <span>•</span>
-                      <span>Por {producto.unidadVenta}</span>
+                      <span>Por {unidadVentaLegible}</span>
                       <span>•</span>
-                      <span>{producto.ingredientes.length} {producto.ingredientes.length === 1 ? 'ingrediente' : 'ingredientes'}</span>
+                      <span>
+                        {producto.ingredientes.length}{' '}
+                        {producto.ingredientes.length === 1 ? 'ingrediente' : 'ingredientes'}
+                      </span>
                     </div>
                   </div>
 
@@ -271,31 +284,48 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
                     <span className="block text-[11px] text-stone-500 font-medium">
                       Costo Insumos
                     </span>
-                    <strong className="text-sm font-bold text-stone-700">
-                      {formatearMoneda(costoProduccion)}
-                    </strong>
+                    {tieneIngredientes ? (
+                      <strong className="text-sm font-bold text-stone-700">
+                        {formatearMoneda(costoProduccion)}
+                      </strong>
+                    ) : (
+                      <span className="text-xs font-semibold text-amber-700">Sin insumos</span>
+                    )}
                   </div>
 
                   <div>
                     <span className="block text-[11px] text-stone-500 font-medium">
-                      Margen ({margenPorcentaje}%)
+                      Margen {tieneIngredientes ? `(${margenPorcentaje}%)` : ''}
                     </span>
-                    <strong
-                      className={`text-sm font-bold ${
-                        estadoMargen === 'SALUDABLE'
-                          ? 'text-emerald-700'
-                          : estadoMargen === 'ADVERTENCIA'
-                          ? 'text-marca-otono'
-                          : 'text-marca-tomate'
-                      }`}
-                    >
-                      {formatearMoneda(margenPesos)}
-                    </strong>
+                    {tieneIngredientes ? (
+                      <strong
+                        className={`text-sm font-bold ${
+                          estadoMargen === 'SALUDABLE'
+                            ? 'text-emerald-700'
+                            : estadoMargen === 'ADVERTENCIA'
+                            ? 'text-marca-otono'
+                            : 'text-marca-tomate'
+                        }`}
+                      >
+                        {formatearMoneda(margenPesos)}
+                      </strong>
+                    ) : (
+                      <span className="text-xs font-semibold text-stone-500">Sin costear</span>
+                    )}
                   </div>
                 </div>
 
                 {/* Semáforo de Margen / Alerta */}
-                {estadoMargen === 'PERDIDA' && (
+                {!tieneIngredientes && (
+                  <div
+                    role="status"
+                    className="flex items-center gap-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-md"
+                  >
+                    <span>⚠️ Receta sin insumos cargados. Editá para asignar los ingredientes y calcular el costo.</span>
+                  </div>
+                )}
+
+                {tieneIngredientes && estadoMargen === 'PERDIDA' && (
                   <div
                     role="status"
                     className="flex items-center gap-1.5 text-xs font-semibold text-marca-tomate bg-red-50 border border-marca-tomate/30 px-2.5 py-1.5 rounded-md"
@@ -304,7 +334,7 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
                   </div>
                 )}
 
-                {estadoMargen === 'ADVERTENCIA' && (
+                {tieneIngredientes && estadoMargen === 'ADVERTENCIA' && (
                   <div
                     role="status"
                     className="flex items-center gap-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-md"
@@ -320,7 +350,7 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
                       type="button"
                       onClick={() => toggleExpandir(producto.id)}
                       aria-expanded={expandida}
-                      className="text-xs font-semibold text-marca-canela hover:text-stone-900 active:text-stone-950 flex items-center gap-1 py-1 px-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela"
+                      className="min-h-[44px] inline-flex items-center text-xs font-semibold text-marca-canela hover:text-stone-900 active:text-stone-950 px-1 py-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela"
                     >
                       <span>{expandida ? '▼ Ocultar fórmula de receta' : '▶ Ver fórmula de receta (' + producto.ingredientes.length + ' insumos)'}</span>
                     </button>

@@ -54,6 +54,28 @@ export interface NuevoIngredienteRecetaInput {
 }
 
 /**
+ * Consolida la lista de ingredientes sumando cantidades duplicadas del mismo insumo (RF-05)
+ * y filtrando cantidades no válidas.
+ */
+export function consolidarIngredientes(
+  ingredientes: NuevoIngredienteRecetaInput[]
+): NuevoIngredienteRecetaInput[] {
+  const mapa = new Map<string, number>();
+  for (const item of ingredientes) {
+    const cant = Number(item.cantidad);
+    if (cant > 0 && item.materiaPrimaId) {
+      const actual = mapa.get(item.materiaPrimaId) || 0;
+      mapa.set(item.materiaPrimaId, actual + cant);
+    }
+  }
+
+  return Array.from(mapa.entries()).map(([materiaPrimaId, cantidad]) => ({
+    materiaPrimaId,
+    cantidad: Math.round(cantidad * 1000) / 1000,
+  }));
+}
+
+/**
  * Convierte un registro relacional de productos y recetas de Postgres a la entidad de dominio.
  */
 export function mapearFilaAProducto(fila: ProductoFila): Producto {
@@ -190,8 +212,10 @@ export class ProductoRepositorio {
       throw new Error(`Error al crear producto: ${errorProducto?.message || 'Error desconocido'}`);
     }
 
-    if (ingredientes.length > 0) {
-      const filasIngredientes = ingredientes.map((item) => ({
+    const ingredientesConsolidados = consolidarIngredientes(ingredientes);
+
+    if (ingredientesConsolidados.length > 0) {
+      const filasIngredientes = ingredientesConsolidados.map((item) => ({
         producto_id: productoCreado.id,
         materia_prima_id: item.materiaPrimaId,
         cantidad: item.cantidad,
@@ -202,6 +226,8 @@ export class ProductoRepositorio {
         .insert(filasIngredientes);
 
       if (errorIngredientes) {
+        // Rollback defensivo: limpiar el producto creado para evitar registros huérfanos sin receta
+        await this.cliente.from('productos').delete().eq('id', productoCreado.id);
         throw new Error(`Error al guardar ingredientes de la receta: ${errorIngredientes.message}`);
       }
     }
@@ -237,7 +263,7 @@ export class ProductoRepositorio {
     }
 
     if (ingredientes !== undefined) {
-      // Elimina ingredientes previos y reemplaza con los nuevos
+      // Elimina ingredientes previos y reemplaza con los nuevos consolidados
       const { error: errorDelete } = await this.cliente
         .from('receta_ingredientes')
         .delete()
@@ -247,8 +273,10 @@ export class ProductoRepositorio {
         throw new Error(`Error al actualizar ingredientes: ${errorDelete.message}`);
       }
 
-      if (ingredientes.length > 0) {
-        const filasIngredientes = ingredientes.map((item) => ({
+      const ingredientesConsolidados = consolidarIngredientes(ingredientes);
+
+      if (ingredientesConsolidados.length > 0) {
+        const filasIngredientes = ingredientesConsolidados.map((item) => ({
           producto_id: id,
           materia_prima_id: item.materiaPrimaId,
           cantidad: item.cantidad,

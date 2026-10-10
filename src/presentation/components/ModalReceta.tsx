@@ -80,11 +80,10 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
   const primerInputRef = useRef<HTMLInputElement>(null);
   const esEdicion = Boolean(productoAEditar);
 
-  // Inicialización de campos al abrir
+  // Inicialización de campos solo al abrir o cambiar de producto a editar
   useEffect(() => {
     if (abierto) {
       setErrorValidacion(null);
-      setMateriaSeleccionadaId(materiasPrimas.length > 0 ? materiasPrimas[0].id : '');
       setCantidadIngrediente('');
 
       if (productoAEditar) {
@@ -109,17 +108,32 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
       }
 
       setTimeout(() => primerInputRef.current?.focus(), 50);
-
-      const manejarKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && !guardando) {
-          onCerrar();
-        }
-      };
-
-      window.addEventListener('keydown', manejarKeyDown);
-      return () => window.removeEventListener('keydown', manejarKeyDown);
     }
-  }, [abierto, productoAEditar, materiasPrimas, guardando, onCerrar]);
+  }, [abierto, productoAEditar?.id]);
+
+  // Manejo accesible de tecla Escape para cerrar modal
+  useEffect(() => {
+    if (!abierto) return;
+    const manejarKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !guardando) {
+        onCerrar();
+      }
+    };
+    window.addEventListener('keydown', manejarKeyDown);
+    return () => window.removeEventListener('keydown', manejarKeyDown);
+  }, [abierto, guardando, onCerrar]);
+
+  // Sincronizar insumo seleccionado por defecto cuando llegan las materias primas
+  useEffect(() => {
+    if (materiasPrimas.length > 0) {
+      const existe = materiasPrimas.some((m) => m.id === materiaSeleccionadaId);
+      if (!existe) {
+        setMateriaSeleccionadaId(materiasPrimas[0].id);
+      }
+    } else {
+      setMateriaSeleccionadaId('');
+    }
+  }, [materiasPrimas, materiaSeleccionadaId]);
 
   // Mapa rápido de materias primas por id para calcular costos
   const mapaMaterias = useMemo(() => {
@@ -132,15 +146,16 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
   const ingredientesEnriquecidos: RecetaIngredienteItem[] = useMemo(() => {
     return ingredientes.map((item) => {
       const materia = mapaMaterias.get(item.materiaPrimaId);
+      const original = productoAEditar?.ingredientes.find((i) => i.materiaPrimaId === item.materiaPrimaId);
       return {
         materiaPrimaId: item.materiaPrimaId,
-        nombreMateriaPrima: materia?.nombre || 'Insumo',
+        nombreMateriaPrima: materia?.nombre || original?.nombreMateriaPrima || 'Insumo',
         cantidad: item.cantidad,
-        unidadMedida: materia?.unidadMedida || 'u',
-        costoUnitario: materia?.costoUnitario || 0,
+        unidadMedida: materia?.unidadMedida || original?.unidadMedida || 'u',
+        costoUnitario: materia?.costoUnitario ?? original?.costoUnitario ?? 0,
       };
     });
-  }, [ingredientes, mapaMaterias]);
+  }, [ingredientes, mapaMaterias, productoAEditar]);
 
   // Cálculo en vivo de costos y margen
   const costoTotal = useMemo(
@@ -155,13 +170,32 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
   );
 
   const estadoMargen = useMemo(
-    () => clasificarMargen(margenPorcentaje, margenPesos),
-    [margenPorcentaje, margenPesos]
+    () => clasificarMargen(margenPorcentaje, margenPesos, costoTotal, precioNumero),
+    [margenPorcentaje, margenPesos, costoTotal, precioNumero]
   );
 
-  if (!abierto) return null;
-
   const materiaSeleccionada = mapaMaterias.get(materiaSeleccionadaId);
+
+  // Guía de texto y placeholder dinámico según la unidad de medida
+  const placeholderCantidad = useMemo(() => {
+    if (!materiaSeleccionada) return '0.00';
+    switch (materiaSeleccionada.unidadMedida) {
+      case 'kg':
+        return 'ej. 0.3 (para 300 g)';
+      case 'g':
+        return 'ej. 250';
+      case 'l':
+        return 'ej. 0.25 (para 250 ml)';
+      case 'ml':
+        return 'ej. 200';
+      case 'u':
+        return 'ej. 2';
+      default:
+        return '0.00';
+    }
+  }, [materiaSeleccionada]);
+
+  if (!abierto) return null;
 
   const handleAgregarIngrediente = () => {
     setErrorValidacion(null);
@@ -276,9 +310,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
             onClick={onCerrar}
             disabled={guardando}
             aria-label="Cerrar modal"
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
           >
-            <span className="text-lg leading-none" aria-hidden="true">&times;</span>
+            <span className="text-xl leading-none" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -307,6 +341,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                 disabled={guardando}
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.preventDefault();
+                }}
                 placeholder="ej. Raviolones de Osobuco, Tarta de Atún"
                 className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
               />
@@ -366,6 +403,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                   disabled={guardando}
                   value={precioLista}
                   onChange={(e) => setPrecioLista(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.preventDefault();
+                  }}
                   placeholder="ej. 7500"
                   className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 />
@@ -383,6 +423,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                   disabled={guardando}
                   value={stockMinimo}
                   onChange={(e) => setStockMinimo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.preventDefault();
+                  }}
                   placeholder="ej. 5"
                   className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 />
@@ -443,7 +486,13 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                         disabled={guardando}
                         value={cantidadIngrediente}
                         onChange={(e) => setCantidadIngrediente(e.target.value)}
-                        placeholder={`ej. 0.5 o 200`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAgregarIngrediente();
+                          }
+                        }}
+                        placeholder={placeholderCantidad}
                         className="w-full px-2.5 py-1.5 text-xs rounded-md bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
                       />
                       <Boton
@@ -493,9 +542,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                           disabled={guardando}
                           onClick={() => handleQuitarIngrediente(item.materiaPrimaId)}
                           aria-label={`Quitar ${item.nombreMateriaPrima}`}
-                          className="text-stone-400 hover:text-marca-tomate p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-marca-tomate"
+                          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-stone-400 hover:text-marca-tomate hover:bg-stone-100 active:text-marca-tomate active:bg-stone-200 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          &times;
+                          <span className="text-lg leading-none" aria-hidden="true">&times;</span>
                         </button>
                       </div>
                     </li>
@@ -527,7 +576,11 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                       ? 'text-emerald-700'
                       : estadoMargen === 'ADVERTENCIA'
                       ? 'text-marca-otono'
-                      : 'text-marca-tomate'
+                      : estadoMargen === 'PERDIDA'
+                      ? 'text-marca-tomate'
+                      : estadoMargen === 'SIN_RECETA'
+                      ? 'text-amber-700'
+                      : 'text-stone-700'
                   }`}
                 >
                   {formatearMoneda(margenPesos)}
@@ -538,6 +591,12 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
             {estadoMargen === 'PERDIDA' && precioNumero > 0 && (
               <p className="text-[11px] font-semibold text-marca-tomate">
                 ⚠️ Atención: El costo de los insumos supera el precio de venta.
+              </p>
+            )}
+
+            {estadoMargen === 'SIN_RECETA' && precioNumero > 0 && (
+              <p className="text-[11px] font-medium text-amber-700">
+                ℹ️ Agregá los insumos de la receta para calcular el costo y margen real.
               </p>
             )}
           </div>

@@ -30,15 +30,32 @@ export function calcularMargenGanancia(
 }
 
 /**
- * Clasifica el margen de ganancia en base al porcentaje y monto en pesos:
- * - PERDIDA: si el margen en pesos es <= 0 o el porcentaje es <= 0 (costo supera o iguala precio de lista)
- * - ADVERTENCIA: si el margen es positivo pero menor al 30%
- * - SALUDABLE: si el margen es mayor o igual al 30%
+ * Clasifica el margen de ganancia en base al porcentaje, monto en pesos y contexto de receta:
+ * - NEUTRO: cuando el producto no tiene costo ni precio definido (pantalla inicial)
+ * - SIN_RECETA: cuando tiene precio de lista pero costo 0 por no tener ingredientes cargados
+ * - PERDIDA: cuando el costo de producción supera o iguala al precio de lista
+ * - ADVERTENCIA: cuando el margen es positivo pero menor al 30%
+ * - SALUDABLE: cuando el margen es mayor o igual al 30%
  */
 export function clasificarMargen(
   margenPorcentaje: number,
-  margenPesos: number
+  margenPesos: number,
+  costoProduccion?: number,
+  precioLista?: number
 ): EstadoMargen {
+  // Si el costo es 0 pero tiene precio de venta, la receta no está costeda aún
+  if (costoProduccion === 0 && precioLista !== undefined && precioLista > 0) {
+    return 'SIN_RECETA';
+  }
+
+  // Estado neutro cuando ambos valores son 0 (formulario vacío o receta en blanco)
+  if (
+    (costoProduccion === 0 && (precioLista === 0 || precioLista === undefined)) ||
+    (margenPesos === 0 && margenPorcentaje === 0 && (precioLista === 0 || precioLista === undefined))
+  ) {
+    return 'NEUTRO';
+  }
+
   if (margenPesos <= 0 || margenPorcentaje <= 0) {
     return 'PERDIDA';
   }

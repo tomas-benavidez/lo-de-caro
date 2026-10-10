@@ -3,6 +3,7 @@ import {
   ProductoRepositorio,
   mapearFilaAProducto,
   mapearProductoAFila,
+  consolidarIngredientes,
   ProductoFila,
   NuevoProductoInput,
 } from '../../src/infrastructure/repositories/productoRepositorio.ts';
@@ -246,5 +247,154 @@ describe('ProductoRepositorio & Mapeadores', () => {
     const repo = new ProductoRepositorio(supabaseMock as any);
     await expect(repo.eliminar('prod-123')).resolves.not.toThrow();
     expect(supabaseMock.from).toHaveBeenCalledWith('productos');
+  });
+
+  it('debe consolidar ingredientes duplicados sumando sus cantidades y filtrando no válidos', () => {
+    const inputs = [
+      { materiaPrimaId: 'mp-harina', cantidad: 0.2 },
+      { materiaPrimaId: 'mp-huevos', cantidad: 2 },
+      { materiaPrimaId: 'mp-harina', cantidad: 0.1 },
+      { materiaPrimaId: 'mp-sal', cantidad: 0 },
+      { materiaPrimaId: 'mp-invalido', cantidad: -1 },
+    ];
+
+    const consolidados = consolidarIngredientes(inputs);
+
+    expect(consolidados).toHaveLength(2);
+    const harina = consolidados.find((i) => i.materiaPrimaId === 'mp-harina');
+    const huevos = consolidados.find((i) => i.materiaPrimaId === 'mp-huevos');
+    expect(harina?.cantidad).toBe(0.3);
+    expect(huevos?.cantidad).toBe(2);
+  });
+
+  it('debe hacer rollback eliminando el producto creado si falla la inserción de ingredientes', async () => {
+    const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq });
+
+    const supabaseMock = {
+      from: vi.fn((tabla: string) => {
+        if (tabla === 'productos') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'prod-fallido-1', nombre: 'Tarta' },
+                  error: null,
+                }),
+              }),
+            }),
+            delete: mockDelete,
+          };
+        }
+        if (tabla === 'receta_ingredientes') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              error: { message: 'FK violation' },
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const repo = new ProductoRepositorio(supabaseMock as any);
+    await expect(
+      repo.crear(
+        {
+          nombre: 'Tarta',
+          categoria: 'Tartas',
+          unidadVenta: 'Unidad',
+          precioLista: 8000,
+        },
+        [{ materiaPrimaId: 'mp-inexistente', cantidad: 1 }]
+      )
+    ).rejects.toThrow('Error al guardar ingredientes de la receta: FK violation');
+
+    expect(mockDelete).toHaveBeenCalled();
+    expect(mockDeleteEq).toHaveBeenCalledWith('id', 'prod-fallido-1');
+  });
+
+  it('debe actualizar los datos de un producto y sincronizar sus ingredientes', async () => {
+    const productoActualizadoFila = {
+      id: 'prod-1',
+      nombre: 'Fideos Caseros Premium',
+      categoria: 'Pastas Lisas',
+      unidad_venta: 'Porcion',
+      precio_lista: 4800,
+      stock_actual: 10,
+      stock_minimo: 5,
+      activo: true,
+      receta_ingredientes: [
+        {
+          id: 'ri-1',
+          producto_id: 'prod-1',
+          materia_prima_id: 'mp-harina',
+          cantidad: 0.25,
+          materias_primas: {
+            id: 'mp-harina',
+            nombre: 'Harina 0000',
+            unidad_medida: 'kg',
+            costo_unitario: 1200,
+          },
+        },
+      ],
+    };
+
+    const mockUpdateEq = vi.fn().mockResolvedValue({ error: null });
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq });
+
+    const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq });
+
+    const mockInsertIngredientes = vi.fn().mockResolvedValue({ error: null });
+
+    const supabaseMock = {
+      from: vi.fn((tabla: string) => {
+        if (tabla === 'productos') {
+          return {
+            update: mockUpdate,
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: productoActualizadoFila,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (tabla === 'receta_ingredientes') {
+          return {
+            delete: mockDelete,
+            insert: mockInsertIngredientes,
+          };
+        }
+        return {};
+      }),
+    };
+
+    const repo = new ProductoRepositorio(supabaseMock as any);
+    const resultado = await repo.actualizar(
+      'prod-1',
+      {
+        nombre: 'Fideos Caseros Premium',
+        precioLista: 4800,
+      },
+      [{ materiaPrimaId: 'mp-harina', cantidad: 0.25 }]
+    );
+
+    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockUpdateEq).toHaveBeenCalledWith('id', 'prod-1');
+    expect(mockDelete).toHaveBeenCalled();
+    expect(mockDeleteEq).toHaveBeenCalledWith('producto_id', 'prod-1');
+    expect(mockInsertIngredientes).toHaveBeenCalledWith([
+      {
+        producto_id: 'prod-1',
+        materia_prima_id: 'mp-harina',
+        cantidad: 0.25,
+      },
+    ]);
+    expect(resultado.nombre).toBe('Fideos Caseros Premium');
+    expect(resultado.precioLista).toBe(4800);
   });
 });

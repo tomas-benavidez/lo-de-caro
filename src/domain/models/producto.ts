@@ -9,7 +9,12 @@ export type CategoriaProducto =
 
 export type UnidadVenta = 'Porcion' | 'Docena' | 'Kilo' | 'Unidad';
 
-export type EstadoMargen = 'SALUDABLE' | 'ADVERTENCIA' | 'PERDIDA';
+export type EstadoMargen =
+  | 'SALUDABLE'
+  | 'ADVERTENCIA'
+  | 'PERDIDA'
+  | 'SIN_RECETA'
+  | 'NEUTRO';
 
 export interface RecetaIngredienteItem {
   id?: string;

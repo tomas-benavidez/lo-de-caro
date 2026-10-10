@@ -97,6 +97,38 @@ describe('Servicio de Dominio: Calculador de Costos y Márgenes', () => {
     // Margen negativo -> PERDIDA
     expect(clasificarMargen(-10, -500)).toBe('PERDIDA');
     expect(clasificarMargen(0, -100)).toBe('PERDIDA');
+
+    // Estado NEUTRO cuando no hay precio ni costo cargado
+    expect(clasificarMargen(0, 0, 0, 0)).toBe('NEUTRO');
+    expect(clasificarMargen(0, 0)).toBe('NEUTRO');
+
+    // Estado SIN_RECETA cuando hay precio de venta pero no hay ingredientes costeaados
+    expect(clasificarMargen(100, 9000, 0, 9000)).toBe('SIN_RECETA');
+
+    // Costo sin precio de venta -> PERDIDA
+    expect(clasificarMargen(0, -1200, 1200, 0)).toBe('PERDIDA');
+  });
+
+  it('debe redondear el costo a 2 decimales ante números con muchos decimales', () => {
+    const ingredientes: RecetaIngredienteItem[] = [
+      {
+        materiaPrimaId: 'm1',
+        nombreMateriaPrima: 'Especias',
+        cantidad: 0.3333,
+        unidadMedida: 'g',
+        costoUnitario: 12.3456,
+      },
+    ];
+
+    const costo = calcularCostoReceta(ingredientes);
+    // 0.3333 * 12.3456 = 4.11478848 -> 4.11
+    expect(costo).toBe(4.11);
+  });
+
+  it('debe calcular margen de ganancia cuando el precio de venta es 0 pero hay costo', () => {
+    const { margenPesos, margenPorcentaje } = calcularMargenGanancia(0, 1500);
+    expect(margenPesos).toBe(-1500);
+    expect(margenPorcentaje).toBe(0);
   });
 });
 

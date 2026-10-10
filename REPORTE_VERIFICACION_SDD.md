@@ -56,21 +56,16 @@ $ npm test
 
  RUN  v3.2.7 /home/tomas/lo-de-caro
 
- ✓ tests/domain/calculadorCostos.test.ts (6 tests) 5ms
+ ✓ tests/domain/calculadorCostos.test.ts (8 tests) 8ms
    ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe calcular correctamente el costo de una receta sumando sus ingredientes
    ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe retornar 0 si la receta no tiene ingredientes
    ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe calcular el margen de ganancia en pesos y porcentaje correctamente
    ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe indicar REPONER cuando el stock actual es menor o igual al mínimo
    ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe calcular costo correctamente con unidades kg y l
-   ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe clasificar los márgenes en SALUDABLE, ADVERTENCIA o PERDIDA
- ✓ tests/infrastructure/productoRepositorio.test.ts (6 tests) 12ms
-   ✓ ProductoRepositorio & Mapeadores > mapea correctamente una fila con join de recetas y materias primas a la entidad Producto
-   ✓ ProductoRepositorio & Mapeadores > mapea correctamente un producto sin ingredientes asociados
-   ✓ ProductoRepositorio & Mapeadores > mapea un input del dominio a formato persistible en Postgres
-   ✓ ProductoRepositorio & Mapeadores > debe listar productos activos con sus recetas a través del cliente
-   ✓ ProductoRepositorio & Mapeadores > debe crear un producto con sus ingredientes asociados
-   ✓ ProductoRepositorio & Mapeadores > debe eliminar un producto por su id exitosamente
- ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests) 18ms
+   ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe clasificar los márgenes en SALUDABLE, ADVERTENCIA, PERDIDA, NEUTRO y SIN_RECETA
+   ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe redondear el costo a 2 decimales ante números con muchos decimales
+   ✓ Servicio de Dominio: Calculador de Costos y Márgenes > debe calcular margen de ganancia cuando el precio de venta es 0 pero hay costo
+ ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests) 27ms
    ✓ mapea correctamente una fila snake_case de Postgres a la entidad de dominio camelCase
    ✓ mapea un input del dominio a formato persistible en Postgres
    ✓ mapea un input parcial del dominio a formato persistible en Postgres
@@ -82,12 +77,22 @@ $ npm test
    ✓ debe eliminar una materia prima por su id exitosamente
    ✓ debe capturar error Postgres 23503 y lanzar mensaje amigable sobre recetas asociadas
    ✓ debe lanzar error genérico cuando falla la eliminación por otro motivo
+ ✓ tests/infrastructure/productoRepositorio.test.ts (9 tests) 27ms
+   ✓ ProductoRepositorio & Mapeadores > mapea correctamente una fila con join de recetas y materias primas a la entidad Producto
+   ✓ ProductoRepositorio & Mapeadores > mapea correctamente un producto sin ingredientes asociados
+   ✓ ProductoRepositorio & Mapeadores > mapea un input del dominio a formato persistible en Postgres
+   ✓ ProductoRepositorio & Mapeadores > debe listar productos activos con sus recetas a través del cliente
+   ✓ ProductoRepositorio & Mapeadores > debe crear un producto con sus ingredientes asociados
+   ✓ ProductoRepositorio & Mapeadores > debe eliminar un producto por su id exitosamente
+   ✓ ProductoRepositorio & Mapeadores > debe consolidar ingredientes duplicados sumando sus cantidades y filtrando no válidos
+   ✓ ProductoRepositorio & Mapeadores > debe hacer rollback eliminando el producto creado si falla la inserción de ingredientes
+   ✓ ProductoRepositorio & Mapeadores > debe actualizar los datos de un producto y sincronizar sus ingredientes
 
  Test Files  3 passed (3)
-      Tests  23 passed (23)
-   Duration  860ms
+      Tests  28 passed (28)
+   Duration  848ms
 ```
-- **Total de pruebas:** 23 tests automatizados ejecutados y 100% aprobados.
+- **Total de pruebas:** 28 tests automatizados ejecutados y 100% aprobados.
 
 ---
 
@@ -100,19 +105,20 @@ $ npm run build
 
 vite v6.4.4 building for production...
 ✓ 84 modules transformed.
-dist/registerSW.js                0.13 kB
-dist/manifest.webmanifest         0.45 kB
-dist/index.html                   1.13 kB │ gzip:   0.60 kB
-dist/assets/index-BYh5bNZf.css   21.45 kB │ gzip:   4.57 kB
-dist/assets/index-BRuAwqNb.js   502.56 kB │ gzip: 139.96 kB
-✓ built in 2.30s
+dist/registerSW.js                  0.13 kB
+dist/manifest.webmanifest           0.45 kB
+dist/index.html                     1.21 kB │ gzip:  0.63 kB
+dist/assets/index-C4aGpZdt.css     21.40 kB │ gzip:  4.60 kB
+dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip: 58.90 kB
+dist/assets/index-h0j1rlsO.js     277.60 kB │ gzip: 81.50 kB
+✓ built in 2.22s
 
 PWA v0.21.2
 mode      generateSW
-precache  8 entries (512.96 KiB)
+precache  9 entries (514.70 KiB)
 files generated: dist/sw.js, dist/workbox-9c191d2f.js
 ```
-- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de build).
+- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de build, chunking optimizado sin advertencias de tamaño).
 
 ---
 
@@ -135,9 +141,11 @@ La auditoría se realizó en el entorno de producción (`vite preview`) con insp
   - `searchbox "Buscar receta o ingrediente"`
   - `button "Editar receta [Nombre del Producto]"`
   - `button "Eliminar receta [Nombre del Producto]"`
-  - `button "▼ Ocultar fórmula de receta" expandable expanded`
+  - `button "▶ Ver fórmula de receta (2 insumos)" expandable`
 - Diálogo modal con `role="dialog"`, `aria-modal="true"`, foco cautivo inicial y soporte completo de tecla `Escape`.
-- Diálogo de confirmación destructiva con foco por defecto en "Cancelar" para evitar borrados accidentales en pantalla táctil.
+- Zonas táctiles mínimas de 44x44px en botón de cerrar modal y botón de quitar insumos, con los 5 estados obligatorios (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`).
+- Intercepción de tecla Enter en inputs para evitar cierres prematuros de formulario y permitir agregar ingredientes rápidamente con el teclado.
+- Manejo preventivo de recetas sin ingredientes: muestra estado `Sin costear / Sin insumos` con alerta amigable en lugar de un falso margen saludable del 100%.
 
 ### C. Capturas de Pantalla Generadas
 - [`evidencia_recetas_modal.png`](file:///home/tomas/lo-de-caro/evidencia_recetas_modal.png): Formulario modal con selector de materias primas y calculadora de costeo en vivo.
@@ -148,18 +156,18 @@ La auditoría se realizó en el entorno de producción (`vite preview`) con insp
 ## 4. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
 
 ### Tarea 1 & Tarea 2: Modelo de Dominio, Costeo y Repositorio Supabase
-- **CÓMO:** Se extendieron los modelos de TypeScript para unificar las unidades de medida (`kg`, `l`, `g`, `ml`, `u`), se implementó la clasificación de margen en tres niveles de alerta y se construyó `ProductoRepositorio` utilizando consultas relacionales postgREST join (`*, receta_ingredientes(*, materias_primas(*))`) con inserción y actualización sincronizada de ingredientes.
-- **POR QUÉ:** La Arquitectura Limpia exige que las reglas matemáticas de costos no dependan de la vista ni de la base de datos, y que la persistencia abstraiga la complejidad de las relaciones foráneas de Postgres.
-- **PARA QUÉ:** Caro puede conocer con precisión matemática cuánto dinero cuesta elaborar cada plato según el precio actual de sus materias primas.
+- **CÓMO:** Se extendieron los modelos de TypeScript para unificar las unidades de medida (`kg`, `l`, `g`, `ml`, `u`), se implementó la clasificación de margen con soporte para `NEUTRO` y `SIN_RECETA`, consolidación automática de ingredientes duplicados (RF-05) y rollback defensivo en caso de error relacional en `ProductoRepositorio`.
+- **POR QUÉ:** La Arquitectura Limpia exige que las reglas matemáticas de costos no dependan de la vista ni de la base de datos, y que la persistencia mantenga la integridad transaccional evitando registros huérfanos en Postgres.
+- **PARA QUÉ:** Caro puede conocer con precisión matemática cuánto dinero cuesta elaborar cada plato según el precio actual de sus materias primas sin riesgo de inconsistencias de datos.
 
 ### Tarea 3 & Tarea 4: Hook Reactivo y Componente `ListaRecetas`
-- **CÓMO:** Se desacopló la lógica de estado con el hook `useProductosRecetas`, y se diseñó la interfaz mobile-first con Tailwind CSS respetando la paleta oficial (`marca-canela`, `marca-beige`, `marca-tomate`, `marca-otono`, `marca-lima`), incorporando buscador en vivo, filtros por categoría y acordeón accesible de ingredientes.
+- **CÓMO:** Se desacopló la lógica de estado con el hook `useProductosRecetas`, y se diseñó la interfaz mobile-first con Tailwind CSS respetando la paleta oficial (`marca-canela`, `marca-beige`, `marca-tomate`, `marca-otono`, `marca-lima`), incorporando buscador en vivo, filtros por categoría con altura táctil accesible (>= 40px), tipografía correcta ("Porción") y prevención de falsos positivos en recetas pendientes de costeo.
 - **POR QUÉ:** Evita la duplicación de código y el antipatrón de *cards sobre cards*, garantizando una visual limpia, de alto contraste y operable con una sola mano en cocina.
 - **PARA QUÉ:** Permite a Caro revisar en segundos el margen de ganancia de cada plato en su freezer antes de fijar o actualizar precios de venta.
 
 ### Tarea 5 & Tarea 6: Modal Dinámico, Integración y Auditoría DevTools
-- **CÓMO:** Se construyó `ModalReceta` con selector de insumos en tiempo real, totalizador de costo y margen interactivo mientras se añaden materias primas, validaciones estrictas y soporte de teclado (`Escape`, `Tab`). Se integró todo en `App.tsx` y se auditó en vivo con Chrome DevTools.
-- **POR QUÉ:** Satisface la regla de los 5 estados interactivos obligatorios (`Default`, `Hover`, `Active`, `Focus`, `Disabled`) y la filosofía Ponytail (sin librerías pesadas externas, solo React y Web Standards).
+- **CÓMO:** Se construyó `ModalReceta` con selector de insumos en tiempo real, totalizador de costo y margen interactivo mientras se añaden materias primas, validaciones estrictas, áreas táctiles de 44x44px, soporte de teclado (`Escape`, `Enter` para agregar insumos sin enviar formulario accidentalmente) y orden estricto de Hooks de React. Se optimizó el chunking de Vite aislando `@supabase/supabase-js`.
+- **POR QUÉ:** Satisface la regla de los 5 estados interactivos obligatorios (`Default`, `Hover`, `Active`, `Focus`, `Disabled`), elimina advertencias de bundle y previene pérdida involuntaria de datos tipeados.
 - **PARA QUÉ:** Caro puede estandarizar recetas completas directamente desde su celular en plena jornada de cocina sin errores de digitación ni pérdida de datos.
 
 ---
@@ -173,6 +181,6 @@ La auditoría se realizó en el entorno de producción (`vite preview`) con insp
 =====================================================
 ```
 - **Conformidad de Especificación:** 100% de requisitos cubiertos (`RF-01`, `RF-02`, `RF-03`, `RF-04`, `RF-05`).
-- **Pruebas Automatizadas:** 23/23 tests exitosos (0 fallas).
-- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
+- **Pruebas Automatizadas:** 28/28 tests exitosos (0 fallas).
+- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias, chunks optimizados (<300 kB).
 - **Auditoría Chrome DevTools:** 0 errores en consola, árbol de accesibilidad verificado, navegación y 5 estados UI cumplidos.
