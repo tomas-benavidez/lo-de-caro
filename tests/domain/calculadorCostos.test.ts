@@ -3,6 +3,7 @@ import {
   calcularCostoReceta,
   calcularMargenGanancia,
   evaluarEstadoStock,
+  clasificarMargen,
 } from '../../src/domain/services/calculadorCostos.ts';
 import { RecetaIngredienteItem } from '../../src/domain/models/producto.ts';
 
@@ -60,4 +61,42 @@ describe('Servicio de Dominio: Calculador de Costos y Márgenes', () => {
     expect(evaluarEstadoStock(3, 5)).toBe('REPONER');
     expect(evaluarEstadoStock(6, 5)).toBe('OK');
   });
+
+  it('debe calcular costo correctamente con unidades kg y l', () => {
+    const ingredientes: RecetaIngredienteItem[] = [
+      {
+        materiaPrimaId: 'm1',
+        nombreMateriaPrima: 'Harina 0000',
+        cantidad: 0.5, // 0.5 kg
+        unidadMedida: 'kg',
+        costoUnitario: 1200, // $1200 por kg
+      },
+      {
+        materiaPrimaId: 'm2',
+        nombreMateriaPrima: 'Leche entera',
+        cantidad: 0.25, // 0.25 l
+        unidadMedida: 'l',
+        costoUnitario: 1000, // $1000 por litro
+      },
+    ];
+
+    const costo = calcularCostoReceta(ingredientes);
+    // (0.5 * 1200) + (0.25 * 1000) = 600 + 250 = 850
+    expect(costo).toBe(850);
+  });
+
+  it('debe clasificar los márgenes en SALUDABLE, ADVERTENCIA o PERDIDA', () => {
+    // Margen >= 30% -> SALUDABLE
+    expect(clasificarMargen(50, 2500)).toBe('SALUDABLE');
+    expect(clasificarMargen(30, 1500)).toBe('SALUDABLE');
+
+    // Margen entre 0% y 29.9% -> ADVERTENCIA
+    expect(clasificarMargen(25, 1000)).toBe('ADVERTENCIA');
+    expect(clasificarMargen(5, 200)).toBe('ADVERTENCIA');
+
+    // Margen negativo -> PERDIDA
+    expect(clasificarMargen(-10, -500)).toBe('PERDIDA');
+    expect(clasificarMargen(0, -100)).toBe('PERDIDA');
+  });
 });
+

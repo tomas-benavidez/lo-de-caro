@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { MateriaPrima } from './domain/models/materiaPrima.ts';
+import { Producto } from './domain/models/producto.ts';
 import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
+import { useProductosRecetas } from './presentation/hooks/useProductosRecetas.ts';
 import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrimas.tsx';
+import { ListaRecetas } from './presentation/components/ListaRecetas.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
+import { ModalReceta } from './presentation/components/ModalReceta.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'gastos' | 'finanzas';
@@ -16,6 +20,13 @@ export const App: React.FC = () => {
   const [confirmandoEliminacion, setConfirmandoEliminacion] = useState(false);
   const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
 
+  // Estados para el módulo de Recetas y Costeo
+  const [modalRecetaAbierto, setModalRecetaAbierto] = useState(false);
+  const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
+  const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null);
+  const [confirmandoEliminacionReceta, setConfirmandoEliminacionReceta] = useState(false);
+  const [errorEliminacionReceta, setErrorEliminacionReceta] = useState<string | null>(null);
+
   // Hook de ciclo de vida y datos para el módulo de materias primas
   const {
     materiasPrimas,
@@ -26,6 +37,17 @@ export const App: React.FC = () => {
     actualizarMateriaPrima,
     eliminarMateriaPrima,
   } = useMateriasPrimas();
+
+  // Hook de ciclo de vida y datos para el módulo de productos y recetas
+  const {
+    productos,
+    cargando: cargandoRecetas,
+    error: errorRecetas,
+    recargar: recargarRecetas,
+    crearProductoReceta,
+    actualizarProductoReceta,
+    eliminarProductoReceta,
+  } = useProductosRecetas();
 
   const handleAbrirNuevoInsumo = () => {
     setMateriaAEditar(null);
@@ -75,6 +97,60 @@ export const App: React.FC = () => {
     if (confirmandoEliminacion) return;
     setMateriaAEliminar(null);
     setErrorEliminacion(null);
+  };
+
+  // Handlers para el módulo de Recetas y Costeo
+  const handleAbrirNuevaReceta = () => {
+    setProductoAEditar(null);
+    setModalRecetaAbierto(true);
+  };
+
+  const handleAbrirEditarReceta = (producto: Producto) => {
+    setProductoAEditar(producto);
+    setModalRecetaAbierto(true);
+  };
+
+  const handleCerrarModalReceta = () => {
+    setModalRecetaAbierto(false);
+    setProductoAEditar(null);
+  };
+
+  const handleGuardarReceta = async (
+    producto: Parameters<typeof crearProductoReceta>[0],
+    ingredientes: Parameters<typeof crearProductoReceta>[1]
+  ) => {
+    if (productoAEditar) {
+      await actualizarProductoReceta(productoAEditar.id, producto, ingredientes);
+    } else {
+      await crearProductoReceta(producto, ingredientes);
+    }
+  };
+
+  const handleAbrirEliminarReceta = (producto: Producto) => {
+    setErrorEliminacionReceta(null);
+    setProductoAEliminar(producto);
+  };
+
+  const handleConfirmarEliminacionReceta = async () => {
+    if (!productoAEliminar) return;
+
+    setConfirmandoEliminacionReceta(true);
+    setErrorEliminacionReceta(null);
+    try {
+      await eliminarProductoReceta(productoAEliminar.id);
+      setProductoAEliminar(null);
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error al eliminar la receta.';
+      setErrorEliminacionReceta(mensaje);
+    } finally {
+      setConfirmandoEliminacionReceta(false);
+    }
+  };
+
+  const handleCancelarEliminacionReceta = () => {
+    if (confirmandoEliminacionReceta) return;
+    setProductoAEliminar(null);
+    setErrorEliminacionReceta(null);
   };
 
   return (
@@ -149,20 +225,15 @@ export const App: React.FC = () => {
         )}
 
         {pestana === 'recetas' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Recetas y Costeo</h2>
-                <p className="text-xs text-stone-500">Estandarización de ingredientes y margen por porción</p>
-              </div>
-              <Boton variante="primario" tamano="chico">
-                + Nueva Receta
-              </Boton>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
-              Módulo de recetas listo para vincular ingredientes con productos de venta.
-            </div>
-          </section>
+          <ListaRecetas
+            productos={productos}
+            cargando={cargandoRecetas}
+            error={errorRecetas}
+            onAbrirNuevoModal={handleAbrirNuevaReceta}
+            onEditar={handleAbrirEditarReceta}
+            onEliminar={handleAbrirEliminarReceta}
+            onReintentar={recargarRecetas}
+          />
         )}
 
         {pestana === 'produccion' && (
@@ -259,6 +330,32 @@ export const App: React.FC = () => {
         error={errorEliminacion}
         onConfirmar={handleConfirmarEliminacion}
         onCancelar={handleCancelarEliminacion}
+      />
+
+      {/* Modal accesible de nueva / edición de receta y costeo */}
+      <ModalReceta
+        abierto={modalRecetaAbierto}
+        productoAEditar={productoAEditar}
+        materiasPrimas={materiasPrimas}
+        onCerrar={handleCerrarModalReceta}
+        onGuardar={handleGuardarReceta}
+      />
+
+      {/* Modal accesible de confirmación de eliminación de receta */}
+      <ModalConfirmacion
+        abierto={Boolean(productoAEliminar)}
+        titulo="Eliminar Receta de Producto"
+        mensaje={
+          productoAEliminar
+            ? `¿Estás segura de que deseás eliminar la receta "${productoAEliminar.nombre}"? Esta acción borrará el producto y sus relaciones de ingredientes.`
+            : ''
+        }
+        textoConfirmar="Eliminar definitivamente"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoEliminacionReceta}
+        error={errorEliminacionReceta}
+        onConfirmar={handleConfirmarEliminacionReceta}
+        onCancelar={handleCancelarEliminacionReceta}
       />
 
       {/* Pie de página con identidad sutil */}

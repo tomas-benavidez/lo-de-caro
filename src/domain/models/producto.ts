@@ -1,3 +1,5 @@
+import { UnidadMedida } from './materiaPrima.ts';
+
 export type CategoriaProducto =
   | 'Pastas Rellenas'
   | 'Pastas Lisas'
@@ -7,11 +9,14 @@ export type CategoriaProducto =
 
 export type UnidadVenta = 'Porcion' | 'Docena' | 'Kilo' | 'Unidad';
 
+export type EstadoMargen = 'SALUDABLE' | 'ADVERTENCIA' | 'PERDIDA';
+
 export interface RecetaIngredienteItem {
+  id?: string;
   materiaPrimaId: string;
   nombreMateriaPrima: string;
   cantidad: number; // Cantidad requerida para 1 unidad de venta
-  unidadMedida: 'g' | 'ml' | 'u';
+  unidadMedida: UnidadMedida;
   costoUnitario: number;
 }
 

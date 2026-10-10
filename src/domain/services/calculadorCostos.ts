@@ -1,4 +1,4 @@
-import { RecetaIngredienteItem } from '../models/producto.ts';
+import { RecetaIngredienteItem, EstadoMargen } from '../models/producto.ts';
 
 /**
  * Calcula el costo total de elaboración de 1 unidad de venta sumando sus ingredientes.
@@ -30,6 +30,25 @@ export function calcularMargenGanancia(
 }
 
 /**
+ * Clasifica el margen de ganancia en base al porcentaje y monto en pesos:
+ * - PERDIDA: si el margen en pesos es <= 0 o el porcentaje es <= 0 (costo supera o iguala precio de lista)
+ * - ADVERTENCIA: si el margen es positivo pero menor al 30%
+ * - SALUDABLE: si el margen es mayor o igual al 30%
+ */
+export function clasificarMargen(
+  margenPorcentaje: number,
+  margenPesos: number
+): EstadoMargen {
+  if (margenPesos <= 0 || margenPorcentaje <= 0) {
+    return 'PERDIDA';
+  }
+  if (margenPorcentaje < 30) {
+    return 'ADVERTENCIA';
+  }
+  return 'SALUDABLE';
+}
+
+/**
  * Evalúa si el stock actual requiere reposición según el umbral mínimo.
  */
 export function evaluarEstadoStock(
@@ -38,3 +57,4 @@ export function evaluarEstadoStock(
 ): 'OK' | 'REPONER' {
   return stockActual <= stockMinimo ? 'REPONER' : 'OK';
 }
+
