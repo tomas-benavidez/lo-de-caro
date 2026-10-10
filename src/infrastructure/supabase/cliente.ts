@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zmewdoqqkmhdcdgofmhe.supabase.co';
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptZXdkb3Fxa21oZGNkZ29mbWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NzczNzEsImV4cCI6MjEwNzE1MzM3MX0.wGLBhQA36FP9qJRxdURFg0bTDndGPTIQMPOKy9--nJE';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Configuración de Supabase incompleta: Asegurate de definir VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu archivo .env local.'
+  );
+}
 
 /**
  * Cliente de conexión con Supabase configurado para la base de datos PostgreSQL.

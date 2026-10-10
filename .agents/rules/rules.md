@@ -31,6 +31,7 @@ Este proyecto rige bajo los estándares de **Gentle-AI (Spec-Driven Development 
   5. `Disabled`
 - **Nomenclatura y Dominio en Español:** Variables, funciones, modelos, interfaces y entidades deben nombrarse estrictamente en **Español** (`materiaPrima`, `loteProduccion`, `precioLista`, `registrarVenta`). El código debe hablar el mismo lenguaje del negocio gastronómico.
 - **Clean Code & Responsabilidad Única:** Funciones cortas con un único propósito, nombres autodocumentados, tipado estricto en TypeScript sin `any`, y cero código muerto o comentado.
+- **CERO Credenciales Hardcodeadas:** Prohibido terminantemente incluir URLs de Supabase, anon keys, tokens o credenciales como cadenas de texto o fallbacks (`|| '...'`) en el código fuente. Toda credencial debe inyectarse exclusivamente vía variables de entorno (`import.meta.env`). El archivo `.env` local debe mantenerse estrictamente protegido e ignorado en `.gitignore`.
 - **Documentación Continua:** Toda decisión de diseño o arquitectura relevante debe registrarse inmediatamente en `docs/` y reportarse en el CÓMO, POR QUÉ y PARA QUÉ de cada tarea.
 
 ---
@@ -62,3 +63,5 @@ La base de conocimiento viva del proyecto reside en `docs/`:
 `Coordinador` ➔ `Planificador (@planner)` ➔ `Implementador (@implementer)` ➔ `Verificador (@reviewer)`
 - **Fast-Path:** Correcciones mecánicas puntuales de un solo archivo.
 - **Ciclo Completo:** Planificación atómica ➔ Implementación TDD / 5 Estados con Ponytail ➔ Verificación con Chrome DevTools y reporte.
+- **Mandato @implementer (Cero Secrets):** Nunca incorporar fallbacks de claves ni URLs en código TypeScript/React. Si falta una variable de entorno, implementar un fail-fast claro.
+- **Mandato @reviewer (Auditoría de Credenciales):** Auditar activamente en cada revisión que ningún archivo contenga tokens, anon keys o secretos embebidos en el código fuente. Rechazar el cambio de inmediato si existe una credencial hardcodeada.
