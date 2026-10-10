@@ -38,10 +38,10 @@ Permitir a Caro registrar, consultar y actualizar todas las materias primas e in
   - Checks: `npm run build` exitoso
   - Evidencia: mobile-first, sin tarjetas anidadas, buscador accesible con 5 estados, badge en marca-tomate
 
-- [ ] `TASK-04`: Modal y Formulario `ModalNuevaMateriaPrima` (`src/presentation/components/ModalNuevaMateriaPrima.tsx`)
+- [x] `TASK-04`: Modal y Formulario `ModalNuevaMateriaPrima` (`src/presentation/components/ModalNuevaMateriaPrima.tsx`)
   - Ruta: inline
-  - Checks: 5 estados UI, navegación teclado, validación
-  - Evidencia: Pendiente
+  - Checks: `npm run build` exitoso, navegación teclado y validación de tipos
+  - Evidencia: implementado con 5 estados UI, focus automático, escape, selector de unidad y validación
 
 - [ ] `TASK-05`: Integración en `App.tsx` y Verificación Final
   - Ruta: inline

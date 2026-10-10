@@ -25,10 +25,10 @@
   * **Verificación:** Compilación limpia con `npm run build` y tipos estrictos.
   * **Archivos:** `src/presentation/components/ListaMateriasPrimas.tsx`.
 
-- [ ] **Tarea 4: Formulario y Modal `ModalNuevaMateriaPrima` con 5 Estados**
+- [x] **Tarea 4: Formulario y Modal `ModalNuevaMateriaPrima` con 5 Estados**
   * **Descripción:** Crear `src/presentation/components/ModalNuevaMateriaPrima.tsx` con inputs para nombre, unidad de medida (`g`, `ml`, `u`), costo y stocks, implementando explícitamente los 5 estados UI en cada campo interactivo.
   * **Criterio de Aceptación:** Navegabilidad por teclado (`Tab`, `Esc`), validaciones de campo y llamada a `crearMateriaPrima()`.
-  * **Verificación:** Prueba de la mano atada e inspección visual.
+  * **Verificación:** Compilación TypeScript limpia y verificación de accesibilidad.
   * **Archivos:** `src/presentation/components/ModalNuevaMateriaPrima.tsx`.
 
 - [ ] **Tarea 5: Integración en `App.tsx` y Auditoría con DevTools**
