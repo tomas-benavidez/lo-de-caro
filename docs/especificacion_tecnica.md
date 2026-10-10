@@ -1,245 +1,225 @@
-# Especificación Técnica y Arquitectura - Sistema "La casa cocina"
+# Especificación Técnica y Arquitectura - MVP "Lo de Caro"
 
-Este documento contiene la arquitectura de software, el diseño de la base de datos (esquema SQL) y las políticas de seguridad para el desarrollo del sistema de **"La casa cocina"** (pastas, empanadas y tartas congeladas). Su objetivo es garantizar una base de código limpia, escalable y costo $0 de infraestructura utilizando **Next.js** y **Supabase**.
-
----
-
-## 1. Stack Tecnológico Elegido (Costo $0 USD)
-
-*   **Frontend**: Next.js (React Framework, utilizando **App Router** para un renderizado híbrido y Middleware eficiente).
-*   **Styling (CSS)**: TailwindCSS (Mobile-First responsive, optimizado para celulares de mostrador y cocina).
-*   **Backend-as-a-Service**: Supabase.
-    *   **Base de datos**: PostgreSQL (Base de datos relacional robusta).
-    *   **Autenticación**: Supabase Auth (Manejo de sesiones, login por email/contraseña).
-    *   **Seguridad**: Row Level Security (RLS) para proteger los datos en la base de datos.
-*   **Hosting**: Vercel (Plan Hobby, permanente y gratuito, sin problemas de servidores que se duermen).
+Este documento establece la arquitectura técnica, el stack tecnológico, el modelo de datos en PostgreSQL y el esquema de despliegue para el MVP de **"Lo de Caro"**.
 
 ---
 
-## 2. Modelo de Base de Datos (Esquema SQL de Postgres)
+## 1. Stack Tecnológico
 
-A continuación se detalla el esquema físico de tablas e índices para Supabase, optimizado para relaciones íntegras y velocidad de consulta.
+| Capa | Tecnología | Justificación y Rol |
+| :--- | :--- | :--- |
+| **Build Tool / Bundler** | **Vite** | Dev server ultra rápido con ESM nativo. Genera un bundle estático optimizado (`dist/`). |
+| **Frontend UI** | **React 18/19 + TypeScript** | Interfaz declarativa, tipado estricto de entidades de dominio y componentes modulares. |
+| **Estilos** | **Tailwind CSS** | Utility-first CSS, mobile-first responsivo y paleta de marca personalizada. |
+| **PWA Engine** | **vite-plugin-pwa** | Permite instalar la web como app nativa en el celular (Service Workers + Web App Manifest). |
+| **Hosting & Edge API** | **Cloudflare Pages + Functions** | CDN global sin servidores, costo $0 de por vida, 0ms de arranque en frío. La carpeta `/functions` expone la API backend. |
+| **Base de Datos & Auth** | **Supabase (PostgreSQL)** | Base de datos relacional con integridad transaccional (ACID), migraciones SQL y autenticación. |
+| **Testing de Dominio** | **Vitest** | Pruebas unitarias ultrarrápidas de la lógica de negocio y cálculos financieros. |
 
-```mermaid
-erDiagram
-    profiles ||--o{ lotes_produccion : registra
-    profiles ||--o{ ventas : registra
-    profiles ||--o{ inversiones : realiza
-    insumos ||--o{ receta_ingredientes : compone
-    recetas ||--o{ receta_ingredientes : tiene
-    recetas ||--o{ productos : define
-    productos ||--o{ venta_items : vende
-    ventas ||--o{ venta_items : contiene
-    clientes ||--o{ ventas : realiza
-    lotes_produccion ||--o{ lote_ingredientes : consume
-    insumos ||--o{ lote_ingredientes : usado_en
+---
+
+## 2. Mapa Arquitectónico (Separación de Capas)
+
+```
+[ Celular de Caro (PWA) ]
+        │
+        │ HTTP / JSON
+        ▼
+[ Cloudflare Pages (Frontend Estático) ]
+        │
+        │ Llamadas a /api/...
+        ▼
+[ Cloudflare Pages Functions (/functions) ]  ───► Capa de Controladores / Backend
+        │
+        │ Conexión PostgreSQL / PostgREST (Service Role / JWT)
+        ▼
+[ Supabase (PostgreSQL) ]                   ───► Capa de Persistencia y Transacciones
 ```
 
-### Script de Creación de Tablas (DDL)
+---
 
+## 3. Modelo de Base de Datos (Esquema SQL de Postgres)
+
+### A. Tabla `materias_primas`
 ```sql
--- Habilitar extensión UUID si no está activa
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 1. Tabla de Perfiles de Usuario (Admin/Dueño)
-CREATE TABLE profiles (
-    id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+CREATE TABLE materias_primas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- 2. Tabla de Insumos (Materia Prima / Envases)
-CREATE TABLE insumos (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
     unidad_medida VARCHAR(10) NOT NULL CHECK (unidad_medida IN ('g', 'ml', 'u')),
-    costo_bruto_unitario DECIMAL(12, 4) NOT NULL DEFAULT 0.0000,
-    stock_actual DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    stock_minimo DECIMAL(12, 2) DEFAULT 0.00,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+    costo_unitario NUMERIC(12, 4) NOT NULL DEFAULT 0, -- Costo por g, ml o unidad
+    stock_actual NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    stock_minimo NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
 
--- 3. Tabla de Recetas (Elaboración Base de Sorrentino/Empanada individual)
-CREATE TABLE recetas (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
-    porciones_rendimiento INTEGER NOT NULL DEFAULT 1 CHECK (porciones_rendimiento > 0),
-    costo_envase DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- 4. Tabla de Relación Receta - Ingredientes (Con mermas)
-CREATE TABLE receta_ingredientes (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    receta_id UUID REFERENCES recetas(id) ON DELETE CASCADE NOT NULL,
-    insumo_id UUID REFERENCES insumos(id) ON DELETE RESTRICT NOT NULL,
-    peso_limpio DECIMAL(10, 2) NOT NULL CHECK (peso_limpio > 0),
-    porcentaje_merma DECIMAL(5, 2) NOT NULL DEFAULT 0.00 CHECK (porcentaje_merma >= 0 AND porcentaje_merma < 100),
-    UNIQUE(receta_id, insumo_id)
-);
-
--- 5. Tabla de Productos de Venta (Múltiplos: Docenas, Cajas, Porciones)
+### B. Tabla `productos`
+```sql
 CREATE TABLE productos (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
-    receta_id UUID REFERENCES recetas(id) ON DELETE RESTRICT NOT NULL,
-    unidad_venta VARCHAR(50) NOT NULL, -- ej. 'docena', 'porcion (8u)', 'kilo'
-    cantidad_unidades_base INTEGER NOT NULL CHECK (cantidad_unidades_base > 0), -- ej. 12, 8, 1
-    precio_lista DECIMAL(10, 2) NOT NULL CHECK (precio_lista >= 0),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(100) NOT NULL,
+    categoria VARCHAR(50) NOT NULL, -- Pastas Rellenas, Lisas, Empanadas, Tartas, Salsas
+    unidad_venta VARCHAR(20) NOT NULL, -- Porcion, Docena, Kilo, Unidad
+    precio_lista NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    stock_actual NUMERIC(12, 2) NOT NULL DEFAULT 0, -- Unidades terminadas en freezer
+    stock_minimo NUMERIC(12, 2) NOT NULL DEFAULT 5,
+    activo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
 
--- 6. Tabla de Clientes (Solo Nombre/Apellido obligatorio)
-CREATE TABLE clientes (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    nombre_apellido VARCHAR(150) NOT NULL,
-    telefono VARCHAR(30),
-    notas TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+### C. Tabla `receta_ingredientes` (Relación Producto ↔ Materia Prima)
+```sql
+CREATE TABLE receta_ingredientes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    producto_id UUID NOT NULL REFERENCES productos(id) ON DELETE CASCADE,
+    materia_prima_id UUID NOT NULL REFERENCES materias_primas(id) ON DELETE RESTRICT,
+    cantidad NUMERIC(12, 2) NOT NULL, -- Cantidad requerida para 1 unidad de venta
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (producto_id, materia_prima_id)
 );
+```
 
--- 7. Tabla de Lotes de Producción (Cocina diaria)
+### D. Tabla `lotes_produccion`
+```sql
 CREATE TABLE lotes_produccion (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-    receta_id UUID REFERENCES recetas(id) ON DELETE RESTRICT NOT NULL,
-    cantidad_producida INTEGER NOT NULL CHECK (cantidad_producida > 0),
-    registrado_por UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+    producto_id UUID NOT NULL REFERENCES productos(id) ON DELETE RESTRICT,
+    cantidad_elaborada NUMERIC(12, 2) NOT NULL,
+    observaciones TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
 
--- 8. Tabla de Ingredientes Consumidos por Lote (Historial de mermas reales editadas)
-CREATE TABLE lote_ingredientes (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    lote_id UUID REFERENCES lotes_produccion(id) ON DELETE CASCADE NOT NULL,
-    insumo_id UUID REFERENCES insumos(id) ON DELETE RESTRICT NOT NULL,
-    cantidad_bruta_consumida DECIMAL(12, 2) NOT NULL CHECK (cantidad_bruta_consumida >= 0),
-    UNIQUE(lote_id, insumo_id)
+### E. Tabla `clientes`
+```sql
+CREATE TABLE clientes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre_apellido VARCHAR(150) NOT NULL,
+    telefono VARCHAR(50),
+    saldo_pendiente NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
 
--- 9. Tabla de Ventas
+### F. Tablas `ventas` y `venta_items`
+```sql
 CREATE TABLE ventas (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    fecha TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-    cliente_id UUID REFERENCES clientes(id) ON DELETE RESTRICT NOT NULL,
-    estado_cobro VARCHAR(20) NOT NULL CHECK (estado_cobro IN ('Cobrada', 'Pendiente')),
-    registrado_por UUID REFERENCES profiles(id) ON DELETE SET NULL
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
+    total NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    estado_pago VARCHAR(20) NOT NULL CHECK (estado_pago IN ('Pagado', 'Pendiente', 'Regalo')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Tabla de Ítems de la Venta
 CREATE TABLE venta_items (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    venta_id UUID REFERENCES ventas(id) ON DELETE CASCADE NOT NULL,
-    producto_id UUID REFERENCES productos(id) ON DELETE RESTRICT NOT NULL,
-    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
-    precio_cobrado_real DECIMAL(10, 2) NOT NULL CHECK (precio_cobrado_real >= 0)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venta_id UUID NOT NULL REFERENCES ventas(id) ON DELETE CASCADE,
+    producto_id UUID NOT NULL REFERENCES productos(id) ON DELETE RESTRICT,
+    cantidad NUMERIC(12, 2) NOT NULL,
+    precio_unitario NUMERIC(12, 2) NOT NULL,
+    subtotal NUMERIC(12, 2) NOT NULL
 );
+```
 
--- 11. Tabla de Inversiones (Freezers, maquinaria)
-CREATE TABLE inversiones (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
-    monto DECIMAL(12, 2) NOT NULL CHECK (monto > 0),
-    vida_util_anios INTEGER NOT NULL CHECK (vida_util_anios > 0),
-    fecha_compra DATE NOT NULL DEFAULT CURRENT_DATE,
-    registrado_por UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+### G. Tabla `gastos`
+```sql
+CREATE TABLE gastos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    concepto VARCHAR(200) NOT NULL,
+    categoria VARCHAR(50) NOT NULL CHECK (categoria IN ('Materia Prima', 'Packaging', 'Servicios', 'Equipamiento', 'Otros')),
+    monto NUMERIC(12, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
 ---
 
-## 3. Seguridad y Control de Acceso (Supabase RLS)
+## 4. Transaccionalidad Crítica (Funciones PostgreSQL)
 
-Para evitar que cualquier persona ajena al negocio acceda a la base de datos pública, se aplican políticas de **Row Level Security (RLS)** a nivel de base de datos.
+Para evitar inconsistencias de inventario, el registro de producción y ventas se ejecuta mediante transacciones atómicas de base de datos (`Postgres Functions / RPC`):
 
-### Reglas RLS:
-1.  **Habilitar RLS** en todas las tablas:
-    ```sql
-    ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-    ALTER TABLE insumos ENABLE ROW LEVEL SECURITY;
-    -- (repetir para todas las tablas)
-    ```
-2.  **Políticas de Acceso**:
-    Dado que es un negocio familiar administrado por los dueños, se definen políticas de acceso para **usuarios autenticados**:
-    ```sql
-    -- Ejemplo para tabla insumos: solo usuarios logueados pueden ver y modificar
-    CREATE POLICY "Permitir todo a usuarios autenticados" 
-    ON insumos 
-    FOR ALL 
-    TO authenticated 
-    USING (true) 
-    WITH CHECK (true);
-    ```
-    Esto bloquea al 100% las peticiones anónimas (`anon` key de Supabase sin token de sesión).
+1. **`registrar_produccion(p_producto_id, p_cantidad, p_observaciones)`**:
+   * Descuenta stock de cada ingrediente en `materias_primas`: `stock_actual - (cantidad * receta_ingredientes.cantidad)`.
+   * Incrementa stock en `productos`: `stock_actual + p_cantidad`.
+   * Inserta registro en `lotes_produccion`.
+   * Si cualquier ingrediente genera stock negativo no permitido o falla, se revierte todo (`ROLLBACK`).
+
+2. **`registrar_venta(p_cliente_id, p_items, p_estado_pago)`**:
+   * Descuenta stock de cada producto en `productos`: `stock_actual - item.cantidad`.
+   * Inserta registro en `ventas` y `venta_items`.
+   * Si `estado_pago == 'Pendiente'`, actualiza `clientes.saldo_pendiente += total`.
 
 ---
 
-## 4. Protección de Rutas en Next.js (Middleware)
+## 5. Estructura de Carpetas (Clean / Hexagonal Architecture)
 
-El inicio de sesión se valida a nivel de servidor (Edge) para impedir que un usuario no logueado cargue el frontend de la aplicación.
+El código fuente del frontend y de la lógica de negocio se organiza siguiendo la separación de capas de la Arquitectura Limpia, manteniendo el núcleo de negocio completamente desacoplado del framework:
 
-### Ejemplo de Lógica de Middleware (`src/middleware.js`):
-
-```javascript
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
-
-export async function middleware(req) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
-
-  // Obtener la sesión actual del usuario
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // Si no hay sesión y no está intentando entrar al login, redireccionar a /login
-  if (!session && !req.nextUrl.pathname.startsWith('/login')) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Si hay sesión e intenta ir al login, redireccionar al dashboard
-  if (session && req.nextUrl.pathname.startsWith('/login')) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  return res;
-}
-
-export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-};
+```
+lo-de-caro/
+├── docs/                             # Especificaciones y base de conocimiento viva
+│   ├── contexto/                     # Errores conocidos, convenciones y decisiones
+│   ├── especificacion_MVP.md         # Alcance funcional cerrado
+│   ├── especificacion_tecnica.md     # Blueprint técnico y esquema SQL
+│   └── manual_marca.md               # Tokens de diseño y colores
+├── functions/                        # Backend Serverless en Cloudflare Pages
+│   └── api/                          # Endpoints REST (/api/produccion, /api/ventas, etc.)
+├── public/                           # Assets estáticos, íconos y manifest PWA
+├── src/
+│   ├── domain/                       # NÚCLEO PURO: Sin dependencias de React ni Supabase
+│   │   ├── models/                   # Interfaces y tipos (MateriaPrima, Producto, Receta, Venta)
+│   │   ├── services/                 # Reglas de negocio puras (calculadorCostos, validadorStock)
+│   │   └── repositories/             # Interfaces de repositorios (puertos de salida)
+│   ├── application/                  # CASOS DE USO: Orquestan el flujo de datos
+│   │   ├── useCases/                 # registrarLoteProduccion, registrarVenta, calcularMetaMensual
+│   │   └── dtos/                     # Tipos de entrada y salida para la UI
+│   ├── infrastructure/               # ADAPTADORES EXTERNOS: Supabase, LocalStorage, Fetch
+│   │   ├── supabase/                 # Cliente de Supabase, queries y llamadas RPC
+│   │   └── repositories/             # Implementaciones concretas de los puertos del dominio
+│   ├── presentation/                 # UI REACT (Componentes y Páginas)
+│   │   ├── components/               # Componentes atómicos (Botones, Inputs, Cards con 5 estados)
+│   │   ├── hooks/                    # Custom hooks para desacoplar lógica de render
+│   │   ├── pages/                    # Vistas principales (MateriasPrimas, Recetas, Produccion, Ventas, Balance)
+│   │   └── styles/                   # Configuración y extensiones de Tailwind
+│   ├── App.tsx                       # Enrutador y layout principal
+│   └── main.tsx                      # Punto de entrada de Vite
+├── tests/                            # Pruebas unitarias de dominio con Vitest
+│   ├── domain/                       # Tests de fórmulas de costos, recetas y stock
+│   └── application/                  # Tests de los casos de uso en aislamiento
+├── index.html                        # HTML base mobile-first
+├── tailwind.config.js                # Paleta Lo de Caro y tokens de marca
+├── vite.config.ts                    # Configuración de Vite + PWA plugin
+└── package.json                      # Scripts y dependencias oficiales
 ```
 
 ---
 
-## 5. Diseño e Interfaz Mobile-First (Pantallas Clave en Celular)
+## 6. Convenciones de Clean Code y Nombres en Español
 
-La UI se estructurará mediante layouts responsivos con botones grandes y listados limpios.
+1. **Lenguaje Ubicuo (Español Estricto):**
+   * Todo identificador del dominio debe escribirse en **Español** para reflejar la realidad del negocio gastronómico.
+   * Modelos: `MateriaPrima`, `Producto`, `RecetaIngrediente`, `LoteProduccion`, `Venta`, `Cliente`, `Gasto`.
+   * Variables y funciones: `costoUnitario`, `stockActual`, `precioLista`, `registrarProduccion()`, `calcularMargenPorcion()`.
+   * Parámetros y DTOs: `datosNuevaVenta`, `itemsSeleccionados`, `metaMensualRetiro`.
 
-### Vistas principales de la aplicación:
+2. **Clean Code & Tipado Estricto:**
+   * Prohibido el uso de `any` en TypeScript.
+   * Funciones cortas con **Responsabilidad Única (SRP)**: no mezclar cálculos matemáticos de recetas con lógica de renderizado en React.
+   * Código autodocumentado: nombres claros y autoexplicativos que no requieran comentarios obvios.
 
-1.  **Dashboard (Resumen del Día)**:
-    *   Tarjetas con: Ventas Cobradas del mes, Cuentas Pendientes de cobro y Ganancia Neta Real.
-    *   Botón flotante gigante `+ Registrar Venta` y `+ Registrar Cocina`.
-    *   Tabla de amortización automática de costos fijos integrada en el total mensual.
-2.  **Sección Insumos**:
-    *   Buscador rápido de ingredientes.
-    *   Listado simple indicando stock físico y precio actual.
-    *   Botón para registrar compra (pide precio total y cantidad comprada para actualizar el costo promedio al instante).
-3.  **Sección Recetas y Productos**:
-    *   Carga de Receta (Nombre, Rendimiento en u, ingredientes con peso limpio y % merma).
-    *   Carga de Producto (Asocia receta, selecciona unidad como docena o kilo, define multiplicador y precio de venta de lista).
-4.  **Registrar Cocina (Paso 1 del Stock)**:
-    *   Pantalla tipo "formulario rápido" para indicar qué lote se cocinó.
-    *   Muestra los ingredientes que se van a descontar teóricamente en una lista editable. El usuario corrige los gramos antes de guardar.
-5.  **Mostrador de Ventas (Paso 2 del Stock)**:
-    *   Botones con fotos o íconos grandes de productos de pastas y empanadas.
-    *   Selector de cantidad `+` y `-`.
-    *   Buscador rápido de Cliente para asociar la venta (si está pendiente).
-    *   Interruptor de estado: `[Cobrada / Pendiente]`.
-6.  **Sección Inversiones**:
-    *   Listado de maquinaria comprada, su valor y depreciación mensual automática calculada.
+3. **5 Estados en Todo Control Interactivo:**
+   * Botones, inputs y tarjetas clicables deben implementar visual y funcionalmente: `Default`, `Hover`, `Active`, `Focus` (`:focus-visible` de alto contraste) y `Disabled`.
+
+---
+
+## 7. Trazabilidad y Documentación Continua
+
+* **Reporte de Cierre por Tarea:** Al finalizar cualquier tarea atómica, `@implementer` debe documentar el **CÓMO, POR QUÉ y PARA QUÉ** de la implementación.
+* **Bitácora Antirregresiones:** Todo error técnico no trivial se registra en `docs/contexto/errores-conocidos.md` indicando síntoma, causa raíz y regla preventiva.
+* **Memoria Persistente con Engram:** Al cierre de cada hito verificado, se guarda el estado en Engram (`mem_save`) bajo el tópico `lo-de-caro` para asegurar continuidad entre sesiones.
