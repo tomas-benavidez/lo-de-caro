@@ -33,10 +33,10 @@ Permitir a Caro registrar, consultar y actualizar todas las materias primas e in
   - Checks: `npm test` y `npm run build` pasando
   - Evidencia: implementado con useCallback, useState, tipado estricto y ordenamiento alfabético
 
-- [ ] `TASK-03`: Componente `ListaMateriasPrimas` (`src/presentation/components/ListaMateriasPrimas.tsx`)
+- [x] `TASK-03`: Componente `ListaMateriasPrimas` (`src/presentation/components/ListaMateriasPrimas.tsx`)
   - Ruta: inline
-  - Checks: `npm run build`
-  - Evidencia: Pendiente
+  - Checks: `npm run build` exitoso
+  - Evidencia: mobile-first, sin tarjetas anidadas, buscador accesible con 5 estados, badge en marca-tomate
 
 - [ ] `TASK-04`: Modal y Formulario `ModalNuevaMateriaPrima` (`src/presentation/components/ModalNuevaMateriaPrima.tsx`)
   - Ruta: inline

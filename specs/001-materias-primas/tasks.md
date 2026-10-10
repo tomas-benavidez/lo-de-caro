@@ -19,10 +19,10 @@
   * **Verificación:** `npm test` y compilación estricta de TypeScript con `npm run build`.
   * **Archivos:** `src/presentation/hooks/useMateriasPrimas.ts`.
 
-- [ ] **Tarea 3: Componente `ListaMateriasPrimas` (UI Mobile-First)**
+- [x] **Tarea 3: Componente `ListaMateriasPrimas` (UI Mobile-First)**
   * **Descripción:** Crear `src/presentation/components/ListaMateriasPrimas.tsx` respetando las reglas de diseño (cero cards sobre cards, badges claros de `OK` vs `REPONER` en `marca-tomate`, buscador simple).
   * **Criterio de Aceptación:** Renderizado fiel al manual de marca, legible en viewport de 375px.
-  * **Verificación:** Compilación limpia y renderizado en `App.tsx`.
+  * **Verificación:** Compilación limpia con `npm run build` y tipos estrictos.
   * **Archivos:** `src/presentation/components/ListaMateriasPrimas.tsx`.
 
 - [ ] **Tarea 4: Formulario y Modal `ModalNuevaMateriaPrima` con 5 Estados**
