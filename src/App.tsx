@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { MateriaPrima } from './domain/models/materiaPrima.ts';
 import { Producto } from './domain/models/producto.ts';
+import { LoteProduccion } from './domain/models/loteProduccion.ts';
 import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
 import { useProductosRecetas } from './presentation/hooks/useProductosRecetas.ts';
+import { useProduccion } from './presentation/hooks/useProduccion.ts';
 import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrimas.tsx';
 import { ListaRecetas } from './presentation/components/ListaRecetas.tsx';
+import { ListaProduccion } from './presentation/components/ListaProduccion.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalReceta } from './presentation/components/ModalReceta.tsx';
+import { ModalRegistroProduccion } from './presentation/components/ModalRegistroProduccion.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'gastos' | 'finanzas';
@@ -48,6 +52,23 @@ export const App: React.FC = () => {
     actualizarProductoReceta,
     eliminarProductoReceta,
   } = useProductosRecetas();
+
+  // Estados para el módulo de Producción y Stock de Congelados
+  const [modalProduccionAbierto, setModalProduccionAbierto] = useState(false);
+  const [productoIdAProducir, setProductoIdAProducir] = useState<string | null>(null);
+  const [loteAEliminar, setLoteAEliminar] = useState<LoteProduccion | null>(null);
+  const [confirmandoEliminacionLote, setConfirmandoEliminacionLote] = useState(false);
+  const [errorEliminacionLote, setErrorEliminacionLote] = useState<string | null>(null);
+
+  // Hook de ciclo de vida y datos para el módulo de producción
+  const {
+    lotes,
+    cargando: cargandoProduccion,
+    error: errorProduccion,
+    recargar: recargarProduccion,
+    registrarProduccion,
+    eliminarLote,
+  } = useProduccion();
 
   const handleAbrirNuevoInsumo = () => {
     setMateriaAEditar(null);
@@ -153,6 +174,55 @@ export const App: React.FC = () => {
     setErrorEliminacionReceta(null);
   };
 
+  // Handlers para el módulo de Producción y Stock de Congelados
+  const handleAbrirNuevaProduccion = (productoId?: string) => {
+    setProductoIdAProducir(productoId || null);
+    setModalProduccionAbierto(true);
+  };
+
+  const handleCerrarModalProduccion = () => {
+    setModalProduccionAbierto(false);
+    setProductoIdAProducir(null);
+  };
+
+  const handleGuardarProduccion = async (
+    lote: Parameters<typeof registrarProduccion>[0],
+    ingredientes: Parameters<typeof registrarProduccion>[1]
+  ) => {
+    await registrarProduccion(lote, ingredientes);
+    // Recargar materias primas y recetas para mantener sincronizado el stock en toda la app
+    await Promise.all([recargarMaterias(), recargarRecetas()]);
+  };
+
+  const handleAbrirEliminarLote = (lote: LoteProduccion) => {
+    setErrorEliminacionLote(null);
+    setLoteAEliminar(lote);
+  };
+
+  const handleConfirmarEliminacionLote = async () => {
+    if (!loteAEliminar) return;
+
+    setConfirmandoEliminacionLote(true);
+    setErrorEliminacionLote(null);
+    try {
+      await eliminarLote(loteAEliminar.id);
+      setLoteAEliminar(null);
+      await Promise.all([recargarMaterias(), recargarRecetas()]);
+    } catch (err) {
+      const mensaje =
+        err instanceof Error ? err.message : 'Error al eliminar el lote de producción.';
+      setErrorEliminacionLote(mensaje);
+    } finally {
+      setConfirmandoEliminacionLote(false);
+    }
+  };
+
+  const handleCancelarEliminacionLote = () => {
+    if (confirmandoEliminacionLote) return;
+    setLoteAEliminar(null);
+    setErrorEliminacionLote(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
       {/* Encabezado Superior Mobile-First */}
@@ -237,20 +307,20 @@ export const App: React.FC = () => {
         )}
 
         {pestana === 'produccion' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Lotes de Producción</h2>
-                <p className="text-xs text-stone-500">Registrar lo cocinado descuenta insumos y suma al freezer</p>
-              </div>
-              <Boton variante="primario" tamano="chico">
-                + Cocinar Lote
-              </Boton>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
-              Módulo de producción listo para registrar tandas de cocina con doble impacto de stock.
-            </div>
-          </section>
+          <ListaProduccion
+            lotes={lotes}
+            productos={productos}
+            cargando={cargandoProduccion}
+            error={errorProduccion}
+            onAbrirNuevoModal={() => handleAbrirNuevaProduccion()}
+            onCocinarProducto={(prodId) => handleAbrirNuevaProduccion(prodId)}
+            onEliminarLote={handleAbrirEliminarLote}
+            onReintentar={() => {
+              recargarProduccion();
+              recargarMaterias();
+              recargarRecetas();
+            }}
+          />
         )}
 
         {pestana === 'ventas' && (
@@ -356,6 +426,33 @@ export const App: React.FC = () => {
         error={errorEliminacionReceta}
         onConfirmar={handleConfirmarEliminacionReceta}
         onCancelar={handleCancelarEliminacionReceta}
+      />
+
+      {/* Modal accesible de registro de lote de producción */}
+      <ModalRegistroProduccion
+        abierto={modalProduccionAbierto}
+        productoIdInicial={productoIdAProducir}
+        productos={productos}
+        materiasPrimas={materiasPrimas}
+        onCerrar={handleCerrarModalProduccion}
+        onGuardar={handleGuardarProduccion}
+      />
+
+      {/* Modal accesible de confirmación de eliminación de lote de producción */}
+      <ModalConfirmacion
+        abierto={Boolean(loteAEliminar)}
+        titulo="Eliminar Lote de Producción"
+        mensaje={
+          loteAEliminar
+            ? `¿Estás segura de que deseás eliminar el lote de "${loteAEliminar.nombreProducto}" (${loteAEliminar.cantidadElaborada} ${loteAEliminar.unidadVenta}) del ${loteAEliminar.fecha}? Esta acción borrará el registro del historial.`
+            : ''
+        }
+        textoConfirmar="Eliminar definitivamente"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoEliminacionLote}
+        error={errorEliminacionLote}
+        onConfirmar={handleConfirmarEliminacionLote}
+        onCancelar={handleCancelarEliminacionLote}
       />
 
       {/* Pie de página con identidad sutil */}
