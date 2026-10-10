@@ -35,3 +35,9 @@ A partir de lo expresado por Caro, el alcance real que ella necesita para el MVP
 ### E. Planificador de Metas y Calculadora de Ventas
 * Definición de una meta de ganancia neta mensual deseada (ej. los $300.000 que figuraban en la hoja `Resumen Meses` del Excel).
 * Proyección de volumen: cálculo de cuántas unidades/productos necesita vender para alcanzar ese objetivo financiero.
+
+### F. Solapa y Módulo de Gastos (Libro Diario y Compras)
+* Solapa explícita **Gastos** en la navegación principal.
+* Registro de egresos por fecha, concepto, monto y categoría (`Materia Prima`, `Packaging`, `Servicios`, `Equipamiento`, `Otros`).
+* **Vínculo directo con Materia Prima:** Si el gasto es compra de ingrediente, debe permitir seleccionar el insumo para incrementar automáticamente su stock y actualizar su costo de compra.
+* Alimenta el módulo de **Finanzas**: `Ganancia Neta = Ventas Cobradas - Gastos Totales`.

@@ -6,7 +6,7 @@ import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrim
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
 
-type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'finanzas';
+type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'gastos' | 'finanzas';
 
 export const App: React.FC = () => {
   const [pestana, setPestana] = useState<PestanaActiva>('materiasPrimas');
@@ -113,6 +113,7 @@ export const App: React.FC = () => {
             { id: 'recetas', label: 'Recetas' },
             { id: 'produccion', label: 'Producción' },
             { id: 'ventas', label: 'Ventas' },
+            { id: 'gastos', label: 'Gastos' },
             { id: 'finanzas', label: 'Finanzas' },
           ].map((item) => {
             const activa = pestana === item.id;
@@ -194,6 +195,23 @@ export const App: React.FC = () => {
             </div>
             <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
               Módulo de mostrador para registrar ventas cobradas o pendientes por cliente.
+            </div>
+          </section>
+        )}
+
+        {pestana === 'gastos' && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-stone-900">Libro Diario de Gastos</h2>
+                <p className="text-xs text-stone-500">Compras de insumos, packaging y servicios del local</p>
+              </div>
+              <Boton variante="primario" tamano="chico">
+                + Nuevo Gasto
+              </Boton>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
+              Módulo preparado para compras de insumos (con impacto directo en stock) y gastos operativos.
             </div>
           </section>
         )}
