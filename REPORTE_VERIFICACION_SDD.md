@@ -644,3 +644,154 @@ dist/assets/index-BEjmabyD.js     367.21 kB │ gzip: 98.94 kB
 - **Pruebas Automatizadas:** 84/84 tests exitosos en Vitest (0 fallas).
 - **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
 - **Auditoría Chrome DevTools:** 0 errores de consola, 0 issues de accesibilidad, árbol a11y verificado, persistencia en caliente probada en Supabase y sincronización bidireccional de freezer comprobada.
+
+---
+
+# Reporte Oficial de Verificación SDD: Gastos y Egresos Operativos (SPEC-005)
+
+- **Módulo Principal:** `SPEC-005` (Libro Diario de Gastos, Compras de Materias Primas con Impacto en Stock/Costo, Métodos de Pago y Balance de Finanzas)
+- **Módulos Previos:** `SPEC-001` (Materias Primas), `SPEC-002` (Recetas), `SPEC-003` (Producción), `SPEC-004` (Ventas y Cobranzas)
+- **Fecha de Auditoría:** 2026-10-11
+- **Auditor:** Subagente Verificador / Auditor (@reviewer)
+- **Veredicto Final:** **APROBADO (100% Verificado y Listo para Producción)**
+
+---
+
+## 1. Alcance Auditado y Verificado (SPEC-005)
+
+Se auditaron y validaron de punta a punta las 6 tareas atómicas definidas en [`specs/005-gastos-egresos/tasks.md`](file:///home/tomas/lo-de-caro/specs/005-gastos-egresos/tasks.md):
+
+1. **Tarea 1: Modelo de Dominio y Servicios de Gastos y Egresos (TDD)**
+   - Creación de [`src/domain/models/gasto.ts`](file:///home/tomas/lo-de-caro/src/domain/models/gasto.ts) con tipado estricto de `CategoriaGasto` (`'Materia Prima' | 'Packaging' | 'Servicios' | 'Equipamiento' | 'Otros'`), `MetodoPagoGasto` (`'Efectivo' | 'Transferencia'`), `DetalleCompraMateriaPrima`, `Gasto`, `NuevoGastoInput` y `ResumenGastos`.
+   - Implementación de [`src/domain/services/gastoServicio.ts`](file:///home/tomas/lo-de-caro/src/domain/services/gastoServicio.ts) para cálculo de resúmenes de egresos, cálculo de nuevo costo unitario con precisión decimal, filtrado puro multicriterio y validaciones de negocio en español.
+   - 17 pruebas unitarias de dominio pasando en Vitest.
+
+2. **Tarea 2: Repositorio de Infraestructura `gastoRepositorio` con Supabase (TDD)**
+   - Implementación de [`src/infrastructure/repositories/gastoRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/gastoRepositorio.ts) con métodos `listar()`, `registrarGasto()` y `eliminarGasto()`.
+   - Inserción y consulta en la tabla `gastos` de Postgres respetando el constraint `CHECK (categoria IN ('Materia Prima', 'Packaging', 'Servicios', 'Equipamiento', 'Otros'))`.
+   - Doble impacto atómico ante compras de materia prima: incrementa `stock_actual` y opcionalmente actualiza `costo_unitario` en la tabla `materias_primas`.
+   - Rollback defensivo integral: si falla la actualización del stock del insumo, revierte inmediatamente la inserción del gasto.
+   - Restitución de stock de materias primas al anular un gasto.
+   - Persistencia segura y transparente de metadatos (método de pago y detalle de compra).
+   - 8 pruebas unitarias de infraestructura pasando en Vitest con mocks de Supabase.
+
+3. **Tarea 3: Hook de Aplicación `useGastos`**
+   - Creación de [`src/presentation/hooks/useGastos.ts`](file:///home/tomas/lo-de-caro/src/presentation/hooks/useGastos.ts) para gestionar el estado de gastos, resumen financiero reactivo, estados de carga y manejo de errores.
+   - Compilación estricta y tipado estricto en TypeScript sin `any`.
+
+4. **Tarea 4: Componente Accesible `ModalNuevoGasto` (5 Estados UI)**
+   - Implementación de [`src/presentation/components/ModalNuevoGasto.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalNuevoGasto.tsx) con soporte WAI-ARIA (`role="dialog"`, `aria-modal="true"`, foco en el primer input, tecla `Escape`).
+   - Bloque interactivo para compras de materias primas con cálculo en vivo de nuevo costo unitario y previsualización del stock resultante.
+   - Cumplimiento de los 5 estados obligatorios en cada control UI (`Default`, `Hover`, `Active`, `Focus`, `Disabled`) y zonas táctiles mínimas de 44x44px.
+
+5. **Tarea 5: Componente Principal `ListaGastos` (Mobile-First y 5 Estados)**
+   - Implementación de [`src/presentation/components/ListaGastos.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaGastos.tsx) mobile-first (375px a 420px), sin anidamiento excesivo de tarjetas (*cards sobre cards*).
+   - Métricas de cabecera: Total Egresos, Materia Prima, Operativos y Fijos, y desglose Efectivo vs. Transferencia para arqueo de caja física.
+   - Buscador por concepto en vivo y chips de filtrado rápido por categoría y método de pago.
+   - Badges semánticos y botón accesible para anular gasto con diálogo de confirmación.
+
+6. **Tarea 6: Integración en `App.tsx` y Auditoría en Vivo con DevTools**
+   - Conexión de `ListaGastos`, `ModalNuevoGasto` y `ModalConfirmacion` en la solapa "Gastos" de [`src/App.tsx`](file:///home/tomas/lo-de-caro/src/App.tsx).
+   - Recarga reactiva bidireccional: al asentar una compra de insumos, se actualizan las solapas de Materias Primas y Recetas.
+   - Actualización de la solapa "Finanzas": cruce automático de Ventas Cobradas vs. Gastos Totales, ganancia neta en tiempo real y termómetro de progreso hacia la meta mensual ($300.000).
+   - Auditoría en caliente en navegador real con Chrome DevTools en `http://localhost:5173/`.
+
+---
+
+## 2. Evidencias Empíricas de Calidad
+
+### Pruebas Unitarias Automatizadas (Vitest)
+```bash
+$ npm test
+
+ RUN  v3.2.7 /home/tomas/lo-de-caro
+
+ ✓ tests/domain/gastoServicio.test.ts (19 tests)
+ ✓ tests/infrastructure/gastoRepositorio.test.ts (11 tests)
+ ✓ tests/domain/calculadorCostos.test.ts (8 tests)
+ ✓ tests/domain/produccionServicio.test.ts (16 tests)
+ ✓ tests/domain/ventaServicio.test.ts (13 tests)
+ ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests)
+ ✓ tests/infrastructure/productoRepositorio.test.ts (16 tests)
+ ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (9 tests)
+ ✓ tests/infrastructure/clienteRepositorio.test.ts (6 tests)
+ ✓ tests/infrastructure/ventaRepositorio.test.ts (7 tests)
+
+ Test Files  10 passed (10)
+      Tests  116 passed (116)
+   Duration  1.53s
+```
+- **Total de pruebas:** 116 tests automatizados ejecutados y 100% aprobados (0 fallas).
+
+---
+
+### Compilación y Bundle de Producción (`tsc && vite build`)
+```bash
+$ npm run build
+
+> lo-de-caro@0.1.0 build
+> tsc && vite build
+
+vite v6.4.4 building for production...
+✓ 104 modules transformed.
+dist/registerSW.js                  0.13 kB
+dist/manifest.webmanifest           0.45 kB
+dist/index.html                     1.21 kB │ gzip:   0.63 kB
+dist/assets/index-CvSVclMD.css     31.81 kB │ gzip:   6.00 kB
+dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip:  58.90 kB
+dist/assets/index-Z98BRPck.js     402.79 kB │ gzip: 106.03 kB
+✓ built in 2.57s
+```
+- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de compilación).
+
+---
+
+### Auditoría en Vivo en Navegador (Chrome DevTools en `http://localhost:5173/`)
+
+1. **Consola de JavaScript y Árbol A11y:**
+   - **Resultado:** **0 errores, 0 fallos de tipos, 0 advertencias, 0 problemas de accesibilidad**.
+   - Diálogos modales con `role="dialog"`, `aria-modal="true"`, foco automático en el primer campo y tecla `Escape`.
+   - Etiquetas y `aria-label` asociados a todos los inputs y controles interactivos (100% libre de advertencias de campos huérfanos).
+2. **Prueba Operativa y Resiliencia Multidispositivo:**
+   - **Gasto Operativo:** Se registró gasto de $35.000 en categoría `Packaging` por "500 Cajas de pastas térmicas" con método `Transferencia`.
+   - **Compra de Materia Prima:** Se registró compra de 25 kg de "Harina 0000 Especial" por $25.000 ($1.000/kg) en `Efectivo`.
+   - **Prueba de Persistencia en Frío:** Se ejecutó `localStorage.clear()` y recarga completa de página: el sistema preservó íntegramente los métodos de pago (`Transferencia`) y el detalle de vinculación de ingredientes directamente decodificado desde la base de datos Postgres.
+   - **Anulación con Restitución:** Al anular una compra, el sistema consulta atómicamente la base de datos Supabase, descuenta los kilos agregados y restituye el costo unitario anterior exactamente.
+3. **Capturas de Pantalla Generadas:**
+   - [`evidencia_gastos_libro_diario.png`](file:///home/tomas/lo-de-caro/evidencia_gastos_libro_diario.png): Vista principal de Gastos con métricas financieras, chips y listado.
+   - [`evidencia_modal_nuevo_gasto.png`](file:///home/tomas/lo-de-caro/evidencia_modal_nuevo_gasto.png): Modal accesible con cálculo en vivo de impacto en stock y nuevo costo unitario.
+
+---
+
+## 3. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
+
+### Tarea 1 & Tarea 2: Modelo de Dominio y Repositorio Supabase
+- **CÓMO:** Se definieron los tipos de dominio en `gasto.ts`, validaciones puras de categoría y método de pago en `gastoServicio.ts` y persistencia con rollback defensivo y metadatos embebidos en `gastoRepositorio.ts`, consultando directamente el stock real en Postgres sin depender de datos de cliente potencialmente desactualizados.
+- **POR QUÉ:** Comprar insumos debe impactar en los costos y reponer el stock automáticamente sin sufrir condiciones de carrera ni perder datos de métodos de pago cuando el usuario accede desde diferentes dispositivos móviles.
+- **PARA QUÉ:** Caro anota una sola vez la compra en el supermercado o distribuidora y el sistema se encarga de reponer su stock y recalcular sus costos con total fidelidad contable.
+
+### Tarea 3, Tarea 4 & Tarea 5: Hook Reactivo, Modal y Tablero de Egresos
+- **CÓMO:** Se implementó `useGastos` y los componentes `ListaGastos` y `ModalNuevoGasto` con los 5 estados obligatorios en cada control UI, autocompletado inteligente de sugerencia de compra ("Compra [insumo]") y objetivos táctiles accesibles (mínimo 44x44px).
+- **POR QUÉ:** Proporciona una interfaz táctil rápida y accesible para cargar facturas o tickets desde el teléfono en el local o en el proveedor con cero fricción.
+- **PARA QUÉ:** Caro puede ver al instante cuánto gastó en el mes, cuánto dinero salió de la caja en efectivo y cuánto se pagó por transferencia.
+
+### Tarea 6: Integración Global y Balance de Finanzas
+- **CÓMO:** Se conectaron los componentes en `src/App.tsx` con sincronización asíncrona estricta (`await recargarMaterias()`, `await recargarRecetas()`) y se actualizó la solapa de Finanzas con el cálculo real de Ganancia Neta ($\text{Ventas Cobradas} - \text{Gastos Totales}$) y progreso hacia la meta de retiro de $300.000.
+- **POR QUÉ:** Cierra el circuito financiero de la gastronomía casera de Lo de Caro.
+- **PARA QUÉ:** Caro sabe exactamente si está ganando dinero real en el mes y qué tan cerca está de su sueldo objetivo de $300.000.
+
+---
+
+## 4. Veredicto Formal General
+
+```
+=====================================================
+               VEREDICTO SPEC-005: APROBADO
+          Listo para Producción e Integración
+=====================================================
+```
+- **Conformidad de Especificación:** 100% de requisitos cubiertos (`RF-01` a `RF-06`).
+- **Pruebas Automatizadas:** 116/116 tests exitosos en Vitest (0 fallas).
+- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
+- **Auditoría Chrome DevTools:** 0 errores de consola, 0 fallos de accesibilidad, persistencia multidispositivo comprobada y sincronización bidireccional con Materias Primas y Finanzas verificada.
+

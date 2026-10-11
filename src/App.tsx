@@ -4,7 +4,6 @@ import { Producto, AjusteStockProductoInput } from './domain/models/producto.ts'
 import { LoteProduccion } from './domain/models/loteProduccion.ts';
 import { Venta, NuevaVentaInput } from './domain/models/venta.ts';
 import { Cliente, NuevoClienteInput, RegistroPagoClienteInput } from './domain/models/cliente.ts';
-import { Boton } from './presentation/components/Boton.tsx';
 import { useMateriasPrimas } from './presentation/hooks/useMateriasPrimas.ts';
 import { useProductosRecetas } from './presentation/hooks/useProductosRecetas.ts';
 import { useProduccion } from './presentation/hooks/useProduccion.ts';
@@ -13,6 +12,7 @@ import { ListaMateriasPrimas } from './presentation/components/ListaMateriasPrim
 import { ListaRecetas } from './presentation/components/ListaRecetas.tsx';
 import { ListaProduccion } from './presentation/components/ListaProduccion.tsx';
 import { ListaVentasCobranzas } from './presentation/components/ListaVentasCobranzas.tsx';
+import { ListaGastos } from './presentation/components/ListaGastos.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalReceta } from './presentation/components/ModalReceta.tsx';
 import { ModalRegistroProduccion } from './presentation/components/ModalRegistroProduccion.tsx';
@@ -20,7 +20,10 @@ import { ModalAjusteStockProducto } from './presentation/components/ModalAjusteS
 import { ModalNuevaVenta } from './presentation/components/ModalNuevaVenta.tsx';
 import { ModalNuevoCliente } from './presentation/components/ModalNuevoCliente.tsx';
 import { ModalCobrarDeuda } from './presentation/components/ModalCobrarDeuda.tsx';
+import { ModalNuevoGasto } from './presentation/components/ModalNuevoGasto.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
+import { Gasto, NuevoGastoInput } from './domain/models/gasto.ts';
+import { useGastos } from './presentation/hooks/useGastos.ts';
 
 
 type PestanaActiva = 'materiasPrimas' | 'recetas' | 'produccion' | 'ventas' | 'gastos' | 'finanzas';
@@ -107,6 +110,23 @@ export const App: React.FC = () => {
     crearCliente,
     cobrarDeudaCliente,
   } = useVentasCobranzas();
+
+  // Estados para el módulo de Gastos y Egresos (SPEC-005)
+  const [modalNuevoGastoAbierto, setModalNuevoGastoAbierto] = useState(false);
+  const [gastoAEliminar, setGastoAEliminar] = useState<Gasto | null>(null);
+  const [confirmandoEliminacionGasto, setConfirmandoEliminacionGasto] = useState(false);
+  const [errorEliminacionGasto, setErrorEliminacionGasto] = useState<string | null>(null);
+
+  // Hook de ciclo de vida y datos para el módulo de gastos
+  const {
+    gastos,
+    resumen: resumenGastos,
+    cargando: cargandoGastos,
+    error: errorGastos,
+    recargar: recargarGastos,
+    registrarGasto,
+    eliminarGasto,
+  } = useGastos();
 
   const handleAbrirNuevoInsumo = () => {
     setMateriaAEditar(null);
@@ -344,6 +364,59 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleAbrirNuevoGasto = () => {
+    setModalNuevoGastoAbierto(true);
+  };
+
+  const handleCerrarModalNuevoGasto = () => {
+    setModalNuevoGastoAbierto(false);
+  };
+
+  const handleGuardarGasto = async (
+    datos: NuevoGastoInput,
+    materiaPrimaSeleccionada?: MateriaPrima
+  ) => {
+    await registrarGasto(datos, materiaPrimaSeleccionada);
+    if (datos.compraMateriaPrima) {
+      await recargarMaterias();
+      await recargarRecetas();
+    }
+  };
+
+  const handleAbrirEliminarGasto = (gasto: Gasto) => {
+    setErrorEliminacionGasto(null);
+    setGastoAEliminar(gasto);
+  };
+
+  const handleConfirmarEliminacionGasto = async () => {
+    if (!gastoAEliminar) return;
+    setConfirmandoEliminacionGasto(true);
+    setErrorEliminacionGasto(null);
+    try {
+      const mpRelacionada = gastoAEliminar.compraMateriaPrima
+        ? materiasPrimas.find((m) => m.id === gastoAEliminar.compraMateriaPrima?.materiaPrimaId)
+        : undefined;
+      await eliminarGasto(gastoAEliminar.id, mpRelacionada);
+      if (gastoAEliminar.compraMateriaPrima) {
+        await recargarMaterias();
+        await recargarRecetas();
+      }
+      setGastoAEliminar(null);
+    } catch (err) {
+      setErrorEliminacionGasto(
+        err instanceof Error ? err.message : 'Error al anular el gasto.'
+      );
+    } finally {
+      setConfirmandoEliminacionGasto(false);
+    }
+  };
+
+  const handleCancelarEliminacionGasto = () => {
+    if (confirmandoEliminacionGasto) return;
+    setGastoAEliminar(null);
+    setErrorEliminacionGasto(null);
+  };
+
   return (
 
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
@@ -466,40 +539,129 @@ export const App: React.FC = () => {
         )}
 
         {pestana === 'gastos' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Libro Diario de Gastos</h2>
-                <p className="text-xs text-stone-500">Compras de insumos, packaging y servicios del local</p>
-              </div>
-              <Boton variante="primario" tamano="chico">
-                + Nuevo Gasto
-              </Boton>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200 p-4 text-center text-sm text-stone-500">
-              Módulo preparado para compras de insumos (con impacto directo en stock) y gastos operativos.
-            </div>
-          </section>
+          <ListaGastos
+            gastos={gastos}
+            resumen={resumenGastos}
+            cargando={cargandoGastos}
+            error={errorGastos}
+            onAbrirNuevoGasto={handleAbrirNuevoGasto}
+            onEliminarGasto={handleAbrirEliminarGasto}
+            onReintentar={recargarGastos}
+          />
         )}
 
-        {pestana === 'finanzas' && (
-          <section className="space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-stone-900">Balance y Meta Mensual</h2>
-              <p className="text-xs text-stone-500">Seguimiento de la meta de retiro ($300.000) y flujo de caja</p>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-stone-600">Meta de Retiro Mensual</span>
-                <span className="text-sm font-bold text-marca-canela">$300.000</span>
+        {pestana === 'finanzas' && (() => {
+          const totalCobrado = resumenVentas.totalCobrado;
+          const totalGastos = resumenGastos.totalGastos;
+          const gananciaNeta = totalCobrado - totalGastos;
+          const margenPorcentaje =
+            totalCobrado > 0
+              ? Math.round(((gananciaNeta / totalCobrado) * 100) * 10) / 10
+              : 0;
+          const metaRetiro = 300000;
+          const porcentajeMeta = Math.min(
+            100,
+            Math.max(0, Math.round((gananciaNeta / metaRetiro) * 100))
+          );
+
+          return (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-base font-bold text-stone-900">Balance y Meta Mensual</h2>
+                <p className="text-xs text-stone-500">
+                  Cruce real de ventas cobradas vs. gastos totales y calculadora de meta ($300.000)
+                </p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-stone-600">Ventas Estimadas Necesarias</span>
-                <span className="text-sm font-semibold text-stone-900">~$992.000 / mes</span>
+
+              {/* Tarjetas de Resumen Financiero Real */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
+                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
+                    Ingresos Cobrados
+                  </span>
+                  <span className="text-base sm:text-lg font-bold text-emerald-700 block mt-0.5">
+                    ${totalCobrado.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-stone-400">Total ventas cobradas</span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
+                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
+                    Gastos Totales
+                  </span>
+                  <span className="text-base sm:text-lg font-bold text-marca-tomate block mt-0.5">
+                    ${totalGastos.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-stone-400">Egresos registrados</span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
+                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
+                    Ganancia Neta Real
+                  </span>
+                  <span
+                    className={`text-base sm:text-lg font-bold block mt-0.5 ${
+                      gananciaNeta >= 0 ? 'text-[#446b1d]' : 'text-marca-tomate'
+                    }`}
+                  >
+                    ${gananciaNeta.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-stone-400">Ventas - Gastos</span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
+                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
+                    Margen Global
+                  </span>
+                  <span
+                    className={`text-base sm:text-lg font-bold block mt-0.5 ${
+                      margenPorcentaje >= 30
+                        ? 'text-[#446b1d]'
+                        : margenPorcentaje > 0
+                        ? 'text-amber-700'
+                        : 'text-marca-tomate'
+                    }`}
+                  >
+                    {margenPorcentaje}%
+                  </span>
+                  <span className="text-[10px] text-stone-400">Sobre ingresos</span>
+                </div>
               </div>
-            </div>
-          </section>
-        )}
+
+              {/* Termómetro de Meta de Retiro Mensual ($300.000) */}
+              <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-xs font-bold text-stone-800 block">
+                      Meta de Retiro Personal de Caro
+                    </span>
+                    <span className="text-[11px] text-stone-500">
+                      Sueldo mensual objetivo configurado en el Excel
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-marca-canela">
+                    ${metaRetiro.toLocaleString('es-AR')} / mes
+                  </span>
+                </div>
+
+                {/* Barra de progreso */}
+                <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden border border-stone-200">
+                  <div
+                    className="bg-marca-canela h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${porcentajeMeta}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-stone-600">
+                  <span>Progreso: <strong>{porcentajeMeta}%</strong> alcanzado</span>
+                  <span>
+                    Faltan: <strong>${Math.max(0, metaRetiro - gananciaNeta).toLocaleString('es-AR')}</strong>
+                  </span>
+                </div>
+              </div>
+            </section>
+          );
+        })()}
       </main>
 
       {/* Modal accesible de nueva / edición de materia prima */}
@@ -629,6 +791,35 @@ export const App: React.FC = () => {
         error={errorAnulacionVenta}
         onConfirmar={handleConfirmarAnulacionVenta}
         onCancelar={handleCancelarAnulacionVenta}
+      />
+
+      {/* Modal accesible de nuevo gasto o compra (SPEC-005) */}
+      <ModalNuevoGasto
+        abierto={modalNuevoGastoAbierto}
+        materiasPrimas={materiasPrimas}
+        onCerrar={handleCerrarModalNuevoGasto}
+        onGuardar={handleGuardarGasto}
+      />
+
+      {/* Modal accesible de confirmación de anulación de gasto (SPEC-005) */}
+      <ModalConfirmacion
+        abierto={Boolean(gastoAEliminar)}
+        titulo="Anular Gasto o Egreso"
+        mensaje={
+          gastoAEliminar
+            ? `¿Estás segura de que deseás anular el gasto "${gastoAEliminar.concepto}" por $${gastoAEliminar.monto.toLocaleString('es-AR')} del ${gastoAEliminar.fecha}? ${
+                gastoAEliminar.compraMateriaPrima
+                  ? `Esta acción además descontará las ${gastoAEliminar.compraMateriaPrima.cantidadComprada} ${gastoAEliminar.compraMateriaPrima.unidadMedida} sumadas al stock de "${gastoAEliminar.compraMateriaPrima.nombreMateriaPrima}".`
+                  : 'Esta acción borrará el registro del libro diario.'
+              }`
+            : ''
+        }
+        textoConfirmar="Anular gasto"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoEliminacionGasto}
+        error={errorEliminacionGasto}
+        onConfirmar={handleConfirmarEliminacionGasto}
+        onCancelar={handleCancelarEliminacionGasto}
       />
 
       {/* Pie de página con identidad sutil */}
