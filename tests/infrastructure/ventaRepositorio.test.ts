@@ -314,5 +314,60 @@ describe('VentaRepositorio & Mapeadores', () => {
       expect(mockDeleteVenta).toHaveBeenCalled();
       expect(mockEqDelete).toHaveBeenCalledWith('id', 'v-anular');
     });
+
+    it('debe saldar ventas pendientes en orden cronológico hasta agotar el monto del pago', async () => {
+      const mockVentasPendientes = [
+        {
+          id: 'v-p1',
+          fecha: '2026-10-08',
+          cliente_id: 'c-1',
+          total: 3000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-08T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+        {
+          id: 'v-p2',
+          fecha: '2026-10-09',
+          cliente_id: 'c-1',
+          total: 4000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-09T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+      ];
+
+      const mockOrderCreatedAt = vi.fn().mockResolvedValue({
+        data: mockVentasPendientes,
+        error: null,
+      });
+      const mockOrderFecha = vi.fn().mockReturnValue({ order: mockOrderCreatedAt });
+      const mockEqEstado = vi.fn().mockReturnValue({ order: mockOrderFecha });
+      const mockEqCliente = vi.fn().mockReturnValue({ eq: mockEqEstado });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEqCliente });
+
+      const mockEqUpdate = vi.fn().mockResolvedValue({ error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'ventas') {
+          return { select: mockSelect, update: mockUpdate };
+        }
+        return {};
+      });
+
+      // Pagamos 5000: debe saldar v-p1 (3000), remanente 2000 no alcanza para v-p2 (4000)
+      const saldadas = await repo.saldarVentasPendientes('c-1', 5000, 'Transferencia');
+
+      expect(saldadas).toHaveLength(1);
+      expect(saldadas[0].id).toBe('v-p1');
+      expect(saldadas[0].estadoPago).toBe('Cobrado');
+      expect(saldadas[0].metodoPago).toBe('Transferencia');
+      expect(mockUpdate).toHaveBeenCalledWith({ estado_pago: 'Pagado' });
+      expect(mockEqUpdate).toHaveBeenCalledWith('id', 'v-p1');
+    });
   });
 });
+

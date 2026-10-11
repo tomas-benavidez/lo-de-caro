@@ -34,11 +34,12 @@ export const ModalNuevoCliente: React.FC<ModalNuevoClienteProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && abierto && !guardando) {
+        e.stopImmediatePropagation();
         onCerrar();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [abierto, guardando, onCerrar]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,6 +123,7 @@ export const ModalNuevoCliente: React.FC<ModalNuevoClienteProps> = ({
               value={nombreApellido}
               onChange={(e) => setNombreApellido(e.target.value)}
               placeholder="Ej. Verónica Molina"
+              maxLength={150}
               disabled={guardando}
               className={estiloInput}
               required
@@ -138,6 +140,7 @@ export const ModalNuevoCliente: React.FC<ModalNuevoClienteProps> = ({
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="Ej. 11 4455-6677"
+              maxLength={50}
               disabled={guardando}
               className={estiloInput}
             />

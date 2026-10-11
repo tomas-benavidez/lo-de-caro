@@ -39,11 +39,12 @@ export const ModalCobrarDeuda: React.FC<ModalCobrarDeudaProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && abierto && !guardando) {
+        e.stopImmediatePropagation();
         onCerrar();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [abierto, guardando, onCerrar]);
 
   const handleSubmit = async (e: React.FormEvent) => {

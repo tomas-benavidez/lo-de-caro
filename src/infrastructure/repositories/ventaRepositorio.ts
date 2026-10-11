@@ -222,12 +222,20 @@ export class VentaRepositorio {
         throw new Error(`Error al insertar ítems de la venta: ${errorItems.message}`);
       }
 
-      // 3. Descuento atómico de stock en freezer para cada producto
+      // 3. Descuento atómico de stock en freezer para cada producto (agrupado por productoId)
+      const mapaCantidades = new Map<string, number>();
       for (const it of itemsProcesados) {
+        mapaCantidades.set(
+          it.productoId,
+          Math.round(((mapaCantidades.get(it.productoId) || 0) + it.cantidad) * 1000) / 1000
+        );
+      }
+
+      for (const [productoId, cantidadADescontar] of mapaCantidades.entries()) {
         const { data: prodData, error: errorProdFetch } = await this.cliente
           .from('productos')
           .select('id, stock_actual, nombre')
-          .eq('id', it.productoId)
+          .eq('id', productoId)
           .single();
 
         if (errorProdFetch) {
@@ -235,18 +243,18 @@ export class VentaRepositorio {
         }
 
         const stockPrevio = Number(prodData?.stock_actual || 0);
-        const nuevoStock = Math.round((stockPrevio - it.cantidad) * 1000) / 1000;
+        const nuevoStock = Math.round((stockPrevio - cantidadADescontar) * 1000) / 1000;
 
         const { error: errorProdUpdate } = await this.cliente
           .from('productos')
           .update({ stock_actual: nuevoStock })
-          .eq('id', it.productoId);
+          .eq('id', productoId);
 
         if (errorProdUpdate) {
           throw new Error(`Error al actualizar stock del producto: ${errorProdUpdate.message}`);
         }
 
-        descuentosRealizados.push({ productoId: it.productoId, stockPrevio });
+        descuentosRealizados.push({ productoId, stockPrevio });
       }
 
       // 4. Si la venta es Pendiente y hay cliente asignado, incrementar su saldo adeudado
@@ -329,6 +337,7 @@ export class VentaRepositorio {
   /**
    * Anula una venta: restituye el stock en el freezer de cada producto y revierte
    * la deuda del cliente si la venta estaba en estado Pendiente.
+   * Cuenta con rollback defensivo completo si falla la eliminación de la venta.
    */
   async anularVenta(id: string): Promise<void> {
     const { data: venta, error: errorFetch } = await this.cliente
@@ -341,51 +350,158 @@ export class VentaRepositorio {
       throw new Error(`Error al obtener venta para anular: ${errorFetch?.message || 'No encontrada'}`);
     }
 
-    // 1. Restituir stock en freezer
+    // Agrupar cantidades por producto para evitar actualizaciones repetidas
+    const mapaCantidades = new Map<string, number>();
     for (const it of venta.venta_items || []) {
-      const { data: prodData } = await this.cliente
-        .from('productos')
-        .select('stock_actual')
-        .eq('id', it.producto_id)
-        .single();
+      mapaCantidades.set(
+        it.producto_id,
+        Math.round(((mapaCantidades.get(it.producto_id) || 0) + Number(it.cantidad)) * 1000) / 1000
+      );
+    }
 
-      if (prodData) {
-        const stockActual = Number(prodData.stock_actual || 0);
-        const stockRestituido = Math.round((stockActual + Number(it.cantidad)) * 1000) / 1000;
-        await this.cliente
+    const restitucionesRealizadas: Array<{ productoId: string; stockPrevio: number }> = [];
+    let ajusteSaldoClienteRealizado = false;
+    let saldoClientePrevio = 0;
+
+    try {
+      // 1. Restituir stock en freezer
+      for (const [productoId, cantidadARestituir] of mapaCantidades.entries()) {
+        const { data: prodData, error: errorProdFetch } = await this.cliente
           .from('productos')
-          .update({ stock_actual: stockRestituido })
-          .eq('id', it.producto_id);
+          .select('stock_actual')
+          .eq('id', productoId)
+          .single();
+
+        if (errorProdFetch) {
+          throw new Error(`Error al consultar producto para restitución: ${errorProdFetch.message}`);
+        }
+
+        if (prodData) {
+          const stockActual = Number(prodData.stock_actual || 0);
+          const stockRestituido = Math.round((stockActual + cantidadARestituir) * 1000) / 1000;
+          const { error: errorProdUpdate } = await this.cliente
+            .from('productos')
+            .update({ stock_actual: stockRestituido })
+            .eq('id', productoId);
+
+          if (errorProdUpdate) {
+            throw new Error(`Error al restituir stock del producto: ${errorProdUpdate.message}`);
+          }
+
+          restitucionesRealizadas.push({ productoId, stockPrevio: stockActual });
+        }
       }
-    }
 
-    // 2. Si la venta estaba en estado Pendiente y tenía cliente, restar la deuda
-    if (venta.estado_pago === 'Pendiente' && venta.cliente_id) {
-      const { data: clienteData } = await this.cliente
-        .from('clientes')
-        .select('saldo_pendiente')
-        .eq('id', venta.cliente_id)
-        .single();
-
-      if (clienteData) {
-        const saldoActual = Number(clienteData.saldo_pendiente || 0);
-        const nuevoSaldo = Math.max(0, Math.round((saldoActual - Number(venta.total)) * 100) / 100);
-        await this.cliente
+      // 2. Si la venta estaba en estado Pendiente y tenía cliente, restar la deuda
+      if (venta.estado_pago === 'Pendiente' && venta.cliente_id) {
+        const { data: clienteData, error: errorClienteFetch } = await this.cliente
           .from('clientes')
-          .update({ saldo_pendiente: nuevoSaldo })
-          .eq('id', venta.cliente_id);
+          .select('saldo_pendiente')
+          .eq('id', venta.cliente_id)
+          .single();
+
+        if (errorClienteFetch) {
+          throw new Error(`Error al consultar cliente para ajustar deuda: ${errorClienteFetch.message}`);
+        }
+
+        if (clienteData) {
+          saldoClientePrevio = Number(clienteData.saldo_pendiente || 0);
+          const nuevoSaldo = Math.max(0, Math.round((saldoClientePrevio - Number(venta.total)) * 100) / 100);
+          const { error: errorClienteUpdate } = await this.cliente
+            .from('clientes')
+            .update({ saldo_pendiente: nuevoSaldo })
+            .eq('id', venta.cliente_id);
+
+          if (errorClienteUpdate) {
+            throw new Error(`Error al actualizar saldo del cliente al anular: ${errorClienteUpdate.message}`);
+          }
+
+          ajusteSaldoClienteRealizado = true;
+        }
+      }
+
+      // 3. Eliminar la venta (elimina venta_items en cascada)
+      const { error: errorDelete } = await this.cliente
+        .from('ventas')
+        .delete()
+        .eq('id', id);
+
+      if (errorDelete) {
+        throw new Error(`Error al eliminar venta: ${errorDelete.message}`);
+      }
+    } catch (errorOperacion) {
+      // Rollback defensivo integral ante fallo en anulación
+      if (ajusteSaldoClienteRealizado && venta.cliente_id) {
+        try {
+          await this.cliente
+            .from('clientes')
+            .update({ saldo_pendiente: saldoClientePrevio })
+            .eq('id', venta.cliente_id);
+        } catch {}
+      }
+
+      for (const res of restitucionesRealizadas) {
+        try {
+          await this.cliente
+            .from('productos')
+            .update({ stock_actual: res.stockPrevio })
+            .eq('id', res.productoId);
+        } catch {}
+      }
+
+      throw errorOperacion;
+    }
+  }
+
+  /**
+   * Amortiza o salda las ventas pendientes de un cliente al registrar un pago de deuda.
+   * Actualiza el estado de las ventas que queden completamente cubiertas a 'Pagado' ('Cobrado').
+   */
+  async saldarVentasPendientes(
+    clienteId: string,
+    monto: number,
+    metodoPago: MetodoPago
+  ): Promise<Venta[]> {
+    if (!clienteId || monto <= 0) return [];
+
+    const { data: ventasPendientes, error } = await this.cliente
+      .from('ventas')
+      .select('*, clientes(nombre_apellido), venta_items(*, productos(nombre, unidad_venta))')
+      .eq('cliente_id', clienteId)
+      .eq('estado_pago', 'Pendiente')
+      .order('fecha', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error || !ventasPendientes) {
+      return [];
+    }
+
+    let remanente = Math.round(monto * 100) / 100;
+    const saldadas: Venta[] = [];
+
+    for (const v of ventasPendientes) {
+      if (remanente <= 0) break;
+      const totalVenta = Number(v.total || 0);
+      if (remanente >= totalVenta) {
+        const { error: errorUpdate } = await this.cliente
+          .from('ventas')
+          .update({ estado_pago: 'Pagado' })
+          .eq('id', v.id);
+
+        if (!errorUpdate) {
+          guardarMetodoPagoVenta(v.id, metodoPago);
+          remanente = Math.round((remanente - totalVenta) * 100) / 100;
+          const ventaActualizada = mapearFilaAVenta({
+            ...v,
+            estado_pago: 'Pagado',
+          });
+          ventaActualizada.metodoPago = metodoPago;
+          saldadas.push(ventaActualizada);
+        }
       }
     }
 
-    // 3. Eliminar la venta (elimina venta_items en cascada)
-    const { error: errorDelete } = await this.cliente
-      .from('ventas')
-      .delete()
-      .eq('id', id);
-
-    if (errorDelete) {
-      throw new Error(`Error al eliminar venta: ${errorDelete.message}`);
-    }
+    return saldadas;
   }
 }
 

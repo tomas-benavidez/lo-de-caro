@@ -155,6 +155,16 @@ export function useVentasCobranzas(
       setError(null);
       try {
         const clienteActualizado = await clienteRepo.registrarPagoDeuda(input);
+
+        // Amortizar ventas pendientes en la base de datos y sincronizar listado de ventas
+        try {
+          await ventaRepo.saldarVentasPendientes(input.clienteId, input.monto, input.metodoPago);
+          const ventasActualizadas = await ventaRepo.listar();
+          setVentas(ventasActualizadas);
+        } catch {
+          // Mantener resiliencia si la actualización de ventas falla
+        }
+
         setClientes((prev) =>
           prev.map((c) => (c.id === clienteActualizado.id ? clienteActualizado : c))
         );
@@ -165,7 +175,7 @@ export function useVentasCobranzas(
         throw err;
       }
     },
-    [clienteRepo]
+    [clienteRepo, ventaRepo]
   );
 
   const resumen = useMemo(() => {

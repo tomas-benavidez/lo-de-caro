@@ -134,11 +134,12 @@ export class ClienteRepositorio {
    * Registra el pago o amortización de deuda de un cliente.
    */
   async registrarPagoDeuda(input: RegistroPagoClienteInput): Promise<Cliente> {
-    if (!input.monto || input.monto <= 0) {
+    const montoLimpio = Math.round(Number(input.monto) * 100) / 100;
+    if (isNaN(montoLimpio) || montoLimpio <= 0) {
       throw new Error('El monto a abonar debe ser mayor a cero.');
     }
 
-    return this.actualizarSaldo(input.clienteId, -input.monto);
+    return this.actualizarSaldo(input.clienteId, -montoLimpio);
   }
 }
 

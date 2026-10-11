@@ -124,5 +124,24 @@ describe('ClienteRepositorio & Mapeadores', () => {
       expect(actualizado.saldoPendiente).toBe(2000);
       expect(mockUpdate).toHaveBeenCalledWith({ saldo_pendiente: 2000 });
     });
+
+    it('debe rechazar montos menores o iguales a cero en registrarPagoDeuda', async () => {
+      await expect(
+        repo.registrarPagoDeuda({
+          clienteId: 'c-1',
+          monto: 0,
+          metodoPago: 'Efectivo',
+        })
+      ).rejects.toThrow('El monto a abonar debe ser mayor a cero.');
+
+      await expect(
+        repo.registrarPagoDeuda({
+          clienteId: 'c-1',
+          monto: -500,
+          metodoPago: 'Efectivo',
+        })
+      ).rejects.toThrow('El monto a abonar debe ser mayor a cero.');
+    });
   });
 });
+
