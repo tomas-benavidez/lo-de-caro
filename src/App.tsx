@@ -13,6 +13,7 @@ import { ListaRecetas } from './presentation/components/ListaRecetas.tsx';
 import { ListaProduccion } from './presentation/components/ListaProduccion.tsx';
 import { ListaVentasCobranzas } from './presentation/components/ListaVentasCobranzas.tsx';
 import { ListaGastos } from './presentation/components/ListaGastos.tsx';
+import { TableroFinanzas } from './presentation/components/TableroFinanzas.tsx';
 import { ModalNuevaMateriaPrima } from './presentation/components/ModalNuevaMateriaPrima.tsx';
 import { ModalReceta } from './presentation/components/ModalReceta.tsx';
 import { ModalRegistroProduccion } from './presentation/components/ModalRegistroProduccion.tsx';
@@ -620,118 +621,12 @@ export const App: React.FC = () => {
           />
         )}
 
-        {pestana === 'finanzas' && (() => {
-          const totalCobrado = resumenVentas.totalCobrado;
-          const totalGastos = resumenGastos.totalGastos;
-          const gananciaNeta = totalCobrado - totalGastos;
-          const margenPorcentaje =
-            totalCobrado > 0
-              ? Math.round(((gananciaNeta / totalCobrado) * 100) * 10) / 10
-              : 0;
-          const metaRetiro = 300000;
-          const porcentajeMeta = Math.min(
-            100,
-            Math.max(0, Math.round((gananciaNeta / metaRetiro) * 100))
-          );
-
-          return (
-            <section className="space-y-4">
-              <div>
-                <h2 className="text-base font-bold text-stone-900">Balance y Meta Mensual</h2>
-                <p className="text-xs text-stone-500">
-                  Cruce real de ventas cobradas vs. gastos totales y calculadora de meta ($300.000)
-                </p>
-              </div>
-
-              {/* Tarjetas de Resumen Financiero Real */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
-                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
-                    Ingresos Cobrados
-                  </span>
-                  <span className="text-base sm:text-lg font-bold text-emerald-700 block mt-0.5">
-                    ${totalCobrado.toLocaleString('es-AR')}
-                  </span>
-                  <span className="text-[10px] text-stone-400">Total ventas cobradas</span>
-                </div>
-
-                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
-                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
-                    Gastos Totales
-                  </span>
-                  <span className="text-base sm:text-lg font-bold text-marca-tomate block mt-0.5">
-                    ${totalGastos.toLocaleString('es-AR')}
-                  </span>
-                  <span className="text-[10px] text-stone-400">Egresos registrados</span>
-                </div>
-
-                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
-                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
-                    Ganancia Neta Real
-                  </span>
-                  <span
-                    className={`text-base sm:text-lg font-bold block mt-0.5 ${
-                      gananciaNeta >= 0 ? 'text-[#446b1d]' : 'text-marca-tomate'
-                    }`}
-                  >
-                    ${gananciaNeta.toLocaleString('es-AR')}
-                  </span>
-                  <span className="text-[10px] text-stone-400">Ventas - Gastos</span>
-                </div>
-
-                <div className="bg-white p-3.5 rounded-xl border border-stone-200">
-                  <span className="text-[11px] font-semibold text-stone-500 block truncate">
-                    Margen Global
-                  </span>
-                  <span
-                    className={`text-base sm:text-lg font-bold block mt-0.5 ${
-                      margenPorcentaje >= 30
-                        ? 'text-[#446b1d]'
-                        : margenPorcentaje > 0
-                        ? 'text-amber-700'
-                        : 'text-marca-tomate'
-                    }`}
-                  >
-                    {margenPorcentaje}%
-                  </span>
-                  <span className="text-[10px] text-stone-400">Sobre ingresos</span>
-                </div>
-              </div>
-
-              {/* Termómetro de Meta de Retiro Mensual ($300.000) */}
-              <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-bold text-stone-800 block">
-                      Meta de Retiro Personal de Caro
-                    </span>
-                    <span className="text-[11px] text-stone-500">
-                      Sueldo mensual objetivo configurado en el Excel
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-marca-canela">
-                    ${metaRetiro.toLocaleString('es-AR')} / mes
-                  </span>
-                </div>
-
-                {/* Barra de progreso */}
-                <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden border border-stone-200">
-                  <div
-                    className="bg-marca-canela h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${porcentajeMeta}%` }}
-                  />
-                </div>
-
-                <div className="flex justify-between items-center text-xs text-stone-600">
-                  <span>Progreso: <strong>{porcentajeMeta}%</strong> alcanzado</span>
-                  <span>
-                    Faltan: <strong>${Math.max(0, metaRetiro - gananciaNeta).toLocaleString('es-AR')}</strong>
-                  </span>
-                </div>
-              </div>
-            </section>
-          );
-        })()}
+        {pestana === 'finanzas' && (
+          <TableroFinanzas
+            ventas={ventas}
+            gastos={gastos}
+          />
+        )}
       </main>
 
       {/* Modal accesible de nueva / edición de materia prima */}

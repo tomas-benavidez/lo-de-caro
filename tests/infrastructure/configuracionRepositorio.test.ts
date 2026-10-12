@@ -70,4 +70,63 @@ describe('ConfiguracionRepositorio', () => {
     expect(repo.obtenerGastoFijoPorcion()).toBe(0);
     expect(() => repo.guardarGastoFijoPorcion(200)).not.toThrow();
   });
+
+  describe('Meta Mensual', () => {
+    it('debe retornar 300000 por defecto si no hay meta configurada', () => {
+      expect(repo.obtenerMetaMensual()).toBe(300000);
+      expect(repo.obtenerMetaMensual('2026-10')).toBe(300000);
+    });
+
+    it('debe guardar y recuperar la meta general por defecto', () => {
+      const guardado = repo.guardarMetaMensual(450000);
+      expect(guardado).toBe(450000);
+      expect(repo.obtenerMetaMensual()).toBe(450000);
+      // Para un mes sin meta específica, hereda la meta general
+      expect(repo.obtenerMetaMensual('2026-11')).toBe(450000);
+    });
+
+    it('debe guardar y recuperar meta específica para un mes determinado', () => {
+      repo.guardarMetaMensual(350000, '2026-10');
+      repo.guardarMetaMensual(500000, '2026-11');
+
+      expect(repo.obtenerMetaMensual('2026-10')).toBe(350000);
+      expect(repo.obtenerMetaMensual('2026-11')).toBe(500000);
+      // Otro mes no configurado debe retornar la meta general
+      expect(repo.obtenerMetaMensual('2026-12')).toBe(300000);
+    });
+
+    it('debe sanitizar montos negativos o inválidos a 0', () => {
+      repo.guardarMetaMensual(-5000, '2026-10');
+      expect(repo.obtenerMetaMensual('2026-10')).toBe(0);
+    });
+
+    it('debe tolerar fallos en localStorage sin arrojar excepciones', () => {
+      vi.stubGlobal('localStorage', {
+        getItem: vi.fn(() => {
+          throw new Error('Storage bloqueado');
+        }),
+        setItem: vi.fn(() => {
+          throw new Error('Storage bloqueado');
+        }),
+      });
+
+      expect(repo.obtenerMetaMensual('2026-10')).toBe(300000);
+      expect(() => repo.guardarMetaMensual(400000, '2026-10')).not.toThrow();
+    });
+
+    it('debe protegerse contra valores corruptos, arrays o NaN en storage', () => {
+      // Si el storage tiene un array en lugar de un objeto
+      almacenamiento['lo_de_caro_metas_por_mes'] = JSON.stringify(['invalido']);
+      expect(repo.obtenerMetasPorMes()).toEqual({});
+
+      // Si el storage tiene NaN o no numéricos para un mes
+      almacenamiento['lo_de_caro_metas_por_mes'] = JSON.stringify({
+        '2026-10': null,
+        '2026-11': 'no-numero',
+      });
+      expect(repo.obtenerMetaMensual('2026-10')).toBe(300000);
+      expect(repo.obtenerMetaMensual('2026-11')).toBe(300000);
+    });
+  });
 });
+

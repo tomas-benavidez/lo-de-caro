@@ -137,7 +137,7 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
           className="whitespace-nowrap"
           aria-label="Registrar nueva tanda de cocina"
         >
-          + Cocinar Lote
+          Agregar
         </Boton>
       </div>
 
@@ -362,7 +362,7 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
               <p className="text-xs text-stone-400">
                 {busqueda
                   ? 'No se encontraron lotes para esa búsqueda.'
-                  : 'Tocá "+ Cocinar Lote" para asentar tu primera producción.'}
+                  : 'Tocá "Agregar" para asentar tu primera producción.'}
               </p>
             </div>
           ) : (

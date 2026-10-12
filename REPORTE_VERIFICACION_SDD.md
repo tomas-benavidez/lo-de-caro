@@ -963,3 +963,45 @@ files generated
 - **Pruebas Automatizadas:** 130/130 tests exitosos en Vitest (0 fallas).
 - **Compilación TypeScript / Vite:** 0 errores, 0 advertencias (exit code 0).
 - **Auditoría Chrome DevTools:** 0 errores de consola, árbol de accesibilidad semántico verificado, 5 estados UI cumplidos en todos los componentes interactivos.
+
+---
+
+# Reporte Oficial de Verificación: Módulo Finanzas Mensuales y Mejoras MVP
+
+- **Módulos Auditados:** Módulo Finanzas (Balance Mensual, Metas Dinámicas, Top Productos, Desglose Gastos) + Módulo Producción (Renombrado de botón).
+- **Fecha de Auditoría:** 2026-10-12
+- **Auditor:** Subagente de Corrección y Verificación Escéptica / Antigravity
+- **Veredicto:** **APROBADO (153/153 Tests en Vitest, Compilación limpia y Auditoría DevTools en Caliente OK)**
+
+## 1. Alcance y Tareas Implementadas
+
+1. **Filtro y Selector de Período Mensual en Finanzas:**
+   - Selección por mes individual (`YYYY-MM`) con mes actual seleccionado por defecto, últimos 6 meses pre-cargados para auditoría histórica, y opción `Histórico Completo`.
+   - Soporte para 5 estados UI en el `<select>` (Default, Hover, Active, Focus :focus-visible, Disabled).
+   - Recálculo reactivo automático de ingresos cobrados, ventas pendientes/fiadas por cobrar, gastos totales, ganancia neta real, margen global, ticket promedio y cantidad de operaciones.
+2. **Meta de Retiro Mensual Totalmente Editable:**
+   - Extensión de `ConfiguracionRepositorio` con `obtenerMetaMensual` y `guardarMetaMensual` persistiendo en `localStorage` por mes específico o default, con blindaje contra datos corruptos, arrays y `NaN`.
+   - `ModalEditarMetaMensual` accesible (WAI-ARIA `dialog`, tecla `Escape`, trampa de foco `Tab`/`Shift+Tab` bidireccional, restauración de foco al elemento invocador, presets de atajo rápido, validación estricta y opción de guardar como base para meses futuros).
+   - Barra de progreso que refleja el cumplimiento contra la ganancia neta y calcula el monto exacto faltante, con textos contextualmente adaptados según el período ("Meta de Retiro Personal de Caro" vs "Meta Mensual de Referencia").
+3. **Resúmenes Enriquecidos y Top Productos Más Vendidos:**
+   - Creación de `src/domain/services/finanzaServicio.ts` y modelo `src/domain/models/finanza.ts`.
+   - Ranking por unidades elaboradas vendidas y facturación real a partir de `venta.items`, con exclusión de ingresos ficticios en ventas bonificadas (`Regalo`) y destaque prominente con insignia `🏆 Más Vendido` para el producto estrella.
+   - Desglose de gastos por rubro con porcentaje relativo sobre el egreso total.
+   - Cálculo del ticket promedio sobre ventas cobradas.
+   - Métrica de ventas pendientes/fiadas acumuladas del período para control de caja completo.
+4. **Renombrado de Botón en Producción:**
+   - En `ListaProduccion.tsx`, cambio del texto "+ Cocinar Lote" por "Agregar" (con preservación de `aria-label` y 5 estados UI).
+
+## 2. Evidencias de Verificación
+
+- **Pruebas Automatizadas (Vitest):**
+  - 153/153 tests pasando (17 tests en `finanzaServicio` y 11 tests en `ConfiguracionRepositorio`).
+  - Cobertura de edge cases: ventas bonificadas de regalo en top productos, ventas pendientes en resumen consolidado, meses configurados/adicionales, y tolerancia a valores `NaN` o estructuras corruptas en `localStorage`.
+- **Compilación y Build (`tsc && vite build`):**
+  - Exit code 0, 0 errores, 0 advertencias (`dist/` generado limpiamente).
+- **Auditoría en Caliente (Chrome DevTools en `http://localhost:5173/`):**
+  - Consola limpia (0 errores, 0 advertencias).
+  - Árbol de accesibilidad WAI-ARIA validado: `combobox`, `dialog modal`, `spinbutton` con `min="0"` y `step="1000"` válido.
+  - Trampa y restauración de foco verificada en vivo tras modificar objetivo mensual.
+  - Navegación reactiva entre períodos (mes corriente, meses anteriores e Histórico Completo) comprobada en caliente.
+
