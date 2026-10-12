@@ -171,14 +171,14 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
         <button
           type="button"
           onClick={() => setVistaActiva('historial')}
-          aria-label={`Historial de Lotes (${lotes.length} tandas elaboradas)`}
+          aria-label={`Historial de Producción (${lotes.length} tandas elaboradas)`}
           className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed ${
             vistaActiva === 'historial'
               ? 'bg-marca-canela text-white shadow-sm'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50 active:bg-stone-100'
           }`}
         >
-          Historial de Lotes ({lotes.length})
+          Historial de Producción ({lotes.length})
         </button>
       </div>
 
@@ -186,7 +186,7 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
       <div className="space-y-2">
         <div className="relative">
           <label htmlFor="buscador-produccion" className="sr-only">
-            Buscar productos en freezer o historial de lotes
+            Buscar productos en freezer o historial de producción
           </label>
           <input
             id="buscador-produccion"
@@ -329,9 +329,9 @@ export const ListaProduccion: React.FC<ListaProduccionProps> = ({
                               type="button"
                               onClick={() => onCocinarProducto(prod.id)}
                               className="min-h-[44px] min-w-[44px] px-2.5 py-1 text-xs font-semibold text-marca-canela hover:text-white hover:bg-marca-canela active:bg-[#7b4629] border border-marca-canela/40 hover:border-marca-canela rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
-                              aria-label={`Cocinar tanda de ${prod.nombre}`}
+                              aria-label={`Agregar producción de ${prod.nombre}`}
                             >
-                              + Cocinar
+                              Agregar
                             </button>
                           ) : (
                             <span

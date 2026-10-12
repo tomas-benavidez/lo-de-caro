@@ -26,6 +26,7 @@ export interface ModalRecetaProps {
   ) => Promise<void>;
   productoAEditar?: Producto | null;
   materiasPrimas: MateriaPrima[];
+  gastoFijoPorcion?: number;
 }
 
 const CATEGORIAS_PRODUCTO: CategoriaProducto[] = [
@@ -62,6 +63,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
   onGuardar,
   productoAEditar = null,
   materiasPrimas,
+  gastoFijoPorcion = 0,
 }) => {
   const [nombre, setNombre] = useState('');
   const [categoria, setCategoria] = useState<CategoriaProducto>('Pastas Rellenas');
@@ -159,8 +161,8 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
 
   // Cálculo en vivo de costos y margen
   const costoTotal = useMemo(
-    () => calcularCostoReceta(ingredientesEnriquecidos),
-    [ingredientesEnriquecidos]
+    () => calcularCostoReceta(ingredientesEnriquecidos, gastoFijoPorcion),
+    [ingredientesEnriquecidos, gastoFijoPorcion]
   );
 
   const precioNumero = parseFloat(precioLista) || 0;
@@ -550,6 +552,16 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                     </li>
                   );
                 })}
+                {gastoFijoPorcion > 0 && (
+                  <li className="p-2 flex items-center justify-between bg-amber-50/80 border-t border-amber-200 text-xs">
+                    <span className="font-semibold text-amber-900">
+                      💡 Gasto fijo por porción
+                    </span>
+                    <span className="font-bold text-amber-900">
+                      +{formatearMoneda(gastoFijoPorcion)}
+                    </span>
+                  </li>
+                )}
               </ul>
             )}
           </div>
@@ -561,7 +573,9 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
             </h4>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div className="bg-white/80 p-2 rounded-lg border border-stone-200/60">
-                <span className="block text-[11px] text-stone-500 font-medium">Costo Insumos</span>
+                <span className="block text-[11px] text-stone-500 font-medium">
+                  {gastoFijoPorcion > 0 ? 'Costo Total' : 'Costo Insumos'}
+                </span>
                 <strong className="text-stone-800 text-sm font-bold">{formatearMoneda(costoTotal)}</strong>
               </div>
               <div className="bg-white/80 p-2 rounded-lg border border-stone-200/60">

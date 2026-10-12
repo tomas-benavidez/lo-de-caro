@@ -26,6 +26,8 @@ export interface UseVentasCobranzasResultado {
   registrarVenta: (input: NuevaVentaInput, productos?: Producto[]) => Promise<Venta>;
   anularVenta: (id: string) => Promise<void>;
   crearCliente: (input: NuevoClienteInput) => Promise<Cliente>;
+  actualizarCliente: (id: string, input: NuevoClienteInput) => Promise<Cliente>;
+  eliminarCliente: (id: string) => Promise<void>;
   cobrarDeudaCliente: (input: RegistroPagoClienteInput) => Promise<Cliente>;
 }
 
@@ -150,6 +152,48 @@ export function useVentasCobranzas(
     [clienteRepo]
   );
 
+  const actualizarCliente = useCallback(
+    async (id: string, input: NuevoClienteInput): Promise<Cliente> => {
+      setError(null);
+      try {
+        const clienteActualizado = await clienteRepo.actualizar(id, input);
+        setClientes((prev) =>
+          prev
+            .map((c) => (c.id === id ? clienteActualizado : c))
+            .sort((a, b) => a.nombreApellido.localeCompare(b.nombreApellido))
+        );
+        setVentas((prev) =>
+          prev.map((v) =>
+            v.clienteId === id
+              ? { ...v, nombreCliente: clienteActualizado.nombreApellido }
+              : v
+          )
+        );
+        return clienteActualizado;
+      } catch (err) {
+        const mensaje = err instanceof Error ? err.message : 'Error al actualizar cliente.';
+        setError(mensaje);
+        throw err;
+      }
+    },
+    [clienteRepo]
+  );
+
+  const eliminarCliente = useCallback(
+    async (id: string): Promise<void> => {
+      setError(null);
+      try {
+        await clienteRepo.eliminar(id);
+        setClientes((prev) => prev.filter((c) => c.id !== id));
+      } catch (err) {
+        const mensaje = err instanceof Error ? err.message : 'Error al eliminar cliente.';
+        setError(mensaje);
+        throw err;
+      }
+    },
+    [clienteRepo]
+  );
+
   const cobrarDeudaCliente = useCallback(
     async (input: RegistroPagoClienteInput): Promise<Cliente> => {
       setError(null);
@@ -158,7 +202,12 @@ export function useVentasCobranzas(
 
         // Amortizar ventas pendientes en la base de datos y sincronizar listado de ventas
         try {
-          await ventaRepo.saldarVentasPendientes(input.clienteId, input.monto, input.metodoPago);
+          await ventaRepo.saldarVentasPendientes(
+            input.clienteId,
+            input.monto,
+            input.metodoPago,
+            clienteActualizado.saldoPendiente
+          );
           const ventasActualizadas = await ventaRepo.listar();
           setVentas(ventasActualizadas);
         } catch {
@@ -196,6 +245,8 @@ export function useVentasCobranzas(
     registrarVenta,
     anularVenta,
     crearCliente,
+    actualizarCliente,
+    eliminarCliente,
     cobrarDeudaCliente,
   };
 }

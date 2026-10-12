@@ -138,8 +138,47 @@ export class ClienteRepositorio {
     if (isNaN(montoLimpio) || montoLimpio <= 0) {
       throw new Error('El monto a abonar debe ser mayor a cero.');
     }
-
     return this.actualizarSaldo(input.clienteId, -montoLimpio);
+  }
+
+  /**
+   * Actualiza los datos de un cliente existente (nombre y teléfono).
+   */
+  async actualizar(id: string, input: NuevoClienteInput): Promise<Cliente> {
+    const nombreLimpio = input.nombreApellido?.trim();
+    if (!nombreLimpio) {
+      throw new Error('El nombre y apellido del cliente es obligatorio.');
+    }
+
+    const { data, error } = await this.cliente
+      .from('clientes')
+      .update({
+        nombre_apellido: nombreLimpio,
+        telefono: input.telefono?.trim() || null,
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Error al actualizar cliente: ${error?.message || 'Error desconocido'}`);
+    }
+
+    return mapearFilaACliente(data);
+  }
+
+  /**
+   * Elimina un cliente por su ID.
+   */
+  async eliminar(id: string): Promise<void> {
+    const { error } = await this.cliente
+      .from('clientes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Error al eliminar cliente: ${error.message}`);
+    }
   }
 }
 

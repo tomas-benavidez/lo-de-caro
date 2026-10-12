@@ -142,6 +142,64 @@ describe('ClienteRepositorio & Mapeadores', () => {
         })
       ).rejects.toThrow('El monto a abonar debe ser mayor a cero.');
     });
+
+    it('debe actualizar los datos de un cliente existente', async () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: 'c-1',
+          nombre_apellido: 'Verónica M.',
+          telefono: '1199887766',
+          saldo_pendiente: 1500,
+        },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockEq = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+      mockSupabase.from.mockReturnValue({ update: mockUpdate });
+
+      const actualizado = await repo.actualizar('c-1', {
+        nombreApellido: 'Verónica M.',
+        telefono: '1199887766',
+      });
+
+      expect(actualizado.id).toBe('c-1');
+      expect(actualizado.nombreApellido).toBe('Verónica M.');
+      expect(mockUpdate).toHaveBeenCalledWith({
+        nombre_apellido: 'Verónica M.',
+        telefono: '1199887766',
+      });
+      expect(mockEq).toHaveBeenCalledWith('id', 'c-1');
+    });
+
+    it('debe rechazar actualizar con nombre vacío', async () => {
+      await expect(
+        repo.actualizar('c-1', { nombreApellido: '   ', telefono: '123' })
+      ).rejects.toThrow('El nombre y apellido del cliente es obligatorio.');
+    });
+
+    it('debe eliminar un cliente por su id', async () => {
+      const mockEq = vi.fn().mockResolvedValue({ error: null });
+      const mockDelete = vi.fn().mockReturnValue({ eq: mockEq });
+      mockSupabase.from.mockReturnValue({ delete: mockDelete });
+
+      await repo.eliminar('c-1');
+
+      expect(mockDelete).toHaveBeenCalled();
+      expect(mockEq).toHaveBeenCalledWith('id', 'c-1');
+    });
+
+    it('debe propagar error si falla la eliminación de un cliente', async () => {
+      const mockEq = vi.fn().mockResolvedValue({
+        error: { message: 'Fallo de foreign key' },
+      });
+      const mockDelete = vi.fn().mockReturnValue({ eq: mockEq });
+      mockSupabase.from.mockReturnValue({ delete: mockDelete });
+
+      await expect(repo.eliminar('c-1')).rejects.toThrow(
+        'Error al eliminar cliente: Fallo de foreign key'
+      );
+    });
   });
 });
 

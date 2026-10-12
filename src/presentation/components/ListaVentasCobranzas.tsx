@@ -13,6 +13,8 @@ export interface ListaVentasCobranzasProps {
   onAbrirNuevaVenta: () => void;
   onAbrirNuevoCliente: () => void;
   onCobrarDeuda: (cliente: Cliente) => void;
+  onEditarCliente?: (cliente: Cliente) => void;
+  onEliminarCliente?: (cliente: Cliente) => void;
   onAnularVenta: (venta: Venta) => void;
   onReintentar: () => void;
 }
@@ -50,6 +52,8 @@ export const ListaVentasCobranzas: React.FC<ListaVentasCobranzasProps> = ({
   onAbrirNuevaVenta,
   onAbrirNuevoCliente,
   onCobrarDeuda,
+  onEditarCliente,
+  onEliminarCliente,
   onAnularVenta,
   onReintentar,
 }) => {
@@ -458,9 +462,9 @@ export const ListaVentasCobranzas: React.FC<ListaVentasCobranzasProps> = ({
                       </div>
                     </div>
 
-                    {/* Botón para cobrar si tiene deuda */}
-                    {tieneDeuda && (
-                      <div className="shrink-0">
+                    {/* Acciones del cliente */}
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                      {tieneDeuda && (
                         <Boton
                           variante="primario"
                           tamano="chico"
@@ -468,8 +472,30 @@ export const ListaVentasCobranzas: React.FC<ListaVentasCobranzasProps> = ({
                         >
                           Cobrar
                         </Boton>
-                      </div>
-                    )}
+                      )}
+                      {onEditarCliente && (
+                        <Boton
+                          type="button"
+                          variante="secundario"
+                          tamano="chico"
+                          onClick={() => onEditarCliente(cliente)}
+                          aria-label={`Editar cliente ${cliente.nombreApellido}`}
+                        >
+                          Editar
+                        </Boton>
+                      )}
+                      {onEliminarCliente && (
+                        <Boton
+                          type="button"
+                          variante="peligro"
+                          tamano="chico"
+                          onClick={() => onEliminarCliente(cliente)}
+                          aria-label={`Eliminar cliente ${cliente.nombreApellido}`}
+                        >
+                          Eliminar
+                        </Boton>
+                      )}
+                    </div>
                   </div>
                 );
               })}

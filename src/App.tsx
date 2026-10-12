@@ -22,6 +22,9 @@ import { ModalNuevoCliente } from './presentation/components/ModalNuevoCliente.t
 import { ModalCobrarDeuda } from './presentation/components/ModalCobrarDeuda.tsx';
 import { ModalNuevoGasto } from './presentation/components/ModalNuevoGasto.tsx';
 import { ModalConfirmacion } from './presentation/components/ModalConfirmacion.tsx';
+import { ModalEditarCliente } from './presentation/components/ModalEditarCliente.tsx';
+import { ModalConfiguracionGastoFijo } from './presentation/components/ModalConfiguracionGastoFijo.tsx';
+import { configuracionRepositorio } from './infrastructure/repositories/configuracionRepositorio.ts';
 import { Gasto, NuevoGastoInput } from './domain/models/gasto.ts';
 import { useGastos } from './presentation/hooks/useGastos.ts';
 
@@ -91,6 +94,10 @@ export const App: React.FC = () => {
   // Estados para el módulo de Ventas y Cobranzas (SPEC-004)
   const [modalNuevaVentaAbierto, setModalNuevaVentaAbierto] = useState(false);
   const [modalNuevoClienteAbierto, setModalNuevoClienteAbierto] = useState(false);
+  const [clienteAEditar, setClienteAEditar] = useState<Cliente | null>(null);
+  const [clienteAEliminar, setClienteAEliminar] = useState<Cliente | null>(null);
+  const [confirmandoEliminacionCliente, setConfirmandoEliminacionCliente] = useState(false);
+  const [errorEliminacionCliente, setErrorEliminacionCliente] = useState<string | null>(null);
   const [modalCobrarDeudaAbierto, setModalCobrarDeudaAbierto] = useState(false);
   const [clienteACobrar, setClienteACobrar] = useState<Cliente | null>(null);
   const [ventaAAnular, setVentaAAnular] = useState<Venta | null>(null);
@@ -108,8 +115,16 @@ export const App: React.FC = () => {
     registrarVenta,
     anularVenta,
     crearCliente,
+    actualizarCliente,
+    eliminarCliente,
     cobrarDeudaCliente,
   } = useVentasCobranzas();
+
+  // Estados para configuración de Gasto Fijo por Porción
+  const [gastoFijoPorcion, setGastoFijoPorcion] = useState<number>(() =>
+    configuracionRepositorio.obtenerGastoFijoPorcion()
+  );
+  const [modalGastoFijoAbierto, setModalGastoFijoAbierto] = useState(false);
 
   // Estados para el módulo de Gastos y Egresos (SPEC-005)
   const [modalNuevoGastoAbierto, setModalNuevoGastoAbierto] = useState(false);
@@ -323,6 +338,57 @@ export const App: React.FC = () => {
     return await crearCliente(datos);
   };
 
+  const handleAbrirEditarCliente = (cliente: Cliente) => {
+    setClienteAEditar(cliente);
+  };
+
+  const handleCerrarEditarCliente = () => {
+    setClienteAEditar(null);
+  };
+
+  const handleGuardarEditarCliente = async (id: string, datos: NuevoClienteInput) => {
+    return await actualizarCliente(id, datos);
+  };
+
+  const handleAbrirEliminarCliente = (cliente: Cliente) => {
+    setErrorEliminacionCliente(null);
+    setClienteAEliminar(cliente);
+  };
+
+  const handleCancelarEliminacionCliente = () => {
+    if (confirmandoEliminacionCliente) return;
+    setClienteAEliminar(null);
+    setErrorEliminacionCliente(null);
+  };
+
+  const handleConfirmarEliminacionCliente = async () => {
+    if (!clienteAEliminar) return;
+    setConfirmandoEliminacionCliente(true);
+    setErrorEliminacionCliente(null);
+    try {
+      await eliminarCliente(clienteAEliminar.id);
+      setClienteAEliminar(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar cliente.';
+      setErrorEliminacionCliente(msg);
+    } finally {
+      setConfirmandoEliminacionCliente(false);
+    }
+  };
+
+  const handleAbrirConfigurarGastoFijo = () => {
+    setModalGastoFijoAbierto(true);
+  };
+
+  const handleCerrarConfigurarGastoFijo = () => {
+    setModalGastoFijoAbierto(false);
+  };
+
+  const handleGuardarConfigurarGastoFijo = (nuevoMonto: number) => {
+    configuracionRepositorio.guardarGastoFijoPorcion(nuevoMonto);
+    setGastoFijoPorcion(nuevoMonto);
+  };
+
   const handleAbrirCobrarDeuda = (cliente: Cliente) => {
     setClienteACobrar(cliente);
     setModalCobrarDeudaAbierto(true);
@@ -480,6 +546,7 @@ export const App: React.FC = () => {
         {pestana === 'materiasPrimas' && (
           <ListaMateriasPrimas
             materiasPrimas={materiasPrimas}
+            gastos={gastos}
             cargando={cargandoMaterias}
             error={errorMaterias}
             onAbrirNuevoModal={handleAbrirNuevoInsumo}
@@ -494,6 +561,8 @@ export const App: React.FC = () => {
             productos={productos}
             cargando={cargandoRecetas}
             error={errorRecetas}
+            gastoFijoPorcion={gastoFijoPorcion}
+            onConfigurarGastoFijo={handleAbrirConfigurarGastoFijo}
             onAbrirNuevoModal={handleAbrirNuevaReceta}
             onEditar={handleAbrirEditarReceta}
             onEliminar={handleAbrirEliminarReceta}
@@ -519,7 +588,6 @@ export const App: React.FC = () => {
           />
         )}
 
-
         {pestana === 'ventas' && (
           <ListaVentasCobranzas
             ventas={ventas}
@@ -530,6 +598,8 @@ export const App: React.FC = () => {
             onAbrirNuevaVenta={handleAbrirNuevaVenta}
             onAbrirNuevoCliente={handleAbrirNuevoCliente}
             onCobrarDeuda={handleAbrirCobrarDeuda}
+            onEditarCliente={handleAbrirEditarCliente}
+            onEliminarCliente={handleAbrirEliminarCliente}
             onAnularVenta={handleAbrirAnularVenta}
             onReintentar={() => {
               recargarVentas();
@@ -694,6 +764,7 @@ export const App: React.FC = () => {
         abierto={modalRecetaAbierto}
         productoAEditar={productoAEditar}
         materiasPrimas={materiasPrimas}
+        gastoFijoPorcion={gastoFijoPorcion}
         onCerrar={handleCerrarModalReceta}
         onGuardar={handleGuardarReceta}
       />
@@ -766,6 +837,41 @@ export const App: React.FC = () => {
         abierto={modalNuevoClienteAbierto}
         onCerrar={handleCerrarNuevoCliente}
         onGuardar={handleGuardarCliente}
+      />
+
+      {/* Modal accesible de edición de cliente */}
+      <ModalEditarCliente
+        abierto={Boolean(clienteAEditar)}
+        cliente={clienteAEditar}
+        onCerrar={handleCerrarEditarCliente}
+        onGuardar={handleGuardarEditarCliente}
+      />
+
+      {/* Modal accesible de confirmación de eliminación de cliente */}
+      <ModalConfirmacion
+        abierto={Boolean(clienteAEliminar)}
+        titulo="Eliminar Cliente"
+        mensaje={
+          clienteAEliminar
+            ? clienteAEliminar.saldoPendiente > 0
+              ? `¿Estás segura de que deseás eliminar a "${clienteAEliminar.nombreApellido}"? ADVERTENCIA: El cliente registra una deuda pendiente de $${clienteAEliminar.saldoPendiente.toLocaleString('es-AR')}. Si lo eliminás, no podrás registrar cobranzas sobre su cuenta.`
+              : `¿Estás segura de que deseás eliminar a "${clienteAEliminar.nombreApellido}"? Sus ventas anteriores quedarán registradas en el historial pero ya no figurará en la agenda de clientes.`
+            : ''
+        }
+        textoConfirmar="Eliminar cliente"
+        textoCancelar="Cancelar"
+        confirmando={confirmandoEliminacionCliente}
+        error={errorEliminacionCliente}
+        onConfirmar={handleConfirmarEliminacionCliente}
+        onCancelar={handleCancelarEliminacionCliente}
+      />
+
+      {/* Modal accesible de configuración de gasto fijo por porción */}
+      <ModalConfiguracionGastoFijo
+        abierto={modalGastoFijoAbierto}
+        valorActual={gastoFijoPorcion}
+        onCerrar={handleCerrarConfigurarGastoFijo}
+        onGuardar={handleGuardarConfigurarGastoFijo}
       />
 
       {/* Modal accesible para cobrar deuda de cliente (SPEC-004) */}

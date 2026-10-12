@@ -456,11 +456,14 @@ export class VentaRepositorio {
   /**
    * Amortiza o salda las ventas pendientes de un cliente al registrar un pago de deuda.
    * Actualiza el estado de las ventas que queden completamente cubiertas a 'Pagado' ('Cobrado').
+   * Si el saldo del cliente llega a $0 o si los pagos acumulados cubren las ventas en orden
+   * cronológico, se actualizan a 'Pagado'.
    */
   async saldarVentasPendientes(
     clienteId: string,
     monto: number,
-    metodoPago: MetodoPago
+    metodoPago: MetodoPago,
+    saldoClienteActual?: number
   ): Promise<Venta[]> {
     if (!clienteId || monto <= 0) return [];
 
@@ -472,11 +475,55 @@ export class VentaRepositorio {
       .order('fecha', { ascending: true })
       .order('created_at', { ascending: true });
 
-    if (error || !ventasPendientes) {
+    if (error || !ventasPendientes || ventasPendientes.length === 0) {
       return [];
     }
 
-    let remanente = Math.round(monto * 100) / 100;
+    // Consultar o tomar el saldo_pendiente del cliente para evaluar pagos parciales acumulados
+    let saldoCliente: number | null =
+      saldoClienteActual !== undefined ? saldoClienteActual : null;
+
+    if (saldoCliente === null) {
+      try {
+        const { data: clienteData } = await this.cliente
+          .from('clientes')
+          .select('saldo_pendiente')
+          .eq('id', clienteId)
+          .single();
+
+        if (
+          clienteData &&
+          clienteData.saldo_pendiente !== null &&
+          clienteData.saldo_pendiente !== undefined
+        ) {
+          saldoCliente = Number(clienteData.saldo_pendiente);
+        }
+      } catch {
+        // Fallback defensivo si clientes no está mockeado o no responde
+      }
+    }
+
+    const totalDeudaVentas = ventasPendientes.reduce(
+      (sum, v) => sum + Number(v.total || 0),
+      0
+    );
+
+    // Si el cliente ya no tiene deuda (saldo === 0), todas las ventas pendientes quedan saldadas.
+    // Si tiene deuda pero se realizaron pagos acumulados, el remanente disponible para saldar
+    // es la diferencia entre el total de ventas pendientes y lo que aún adeuda (o al menos el monto recién abonado).
+    let remanente: number;
+    if (saldoCliente === 0) {
+      remanente = totalDeudaVentas;
+    } else if (saldoCliente !== null && saldoCliente > 0) {
+      const pagadoAcumulado = Math.max(
+        0,
+        Math.round((totalDeudaVentas - saldoCliente) * 100) / 100
+      );
+      remanente = Math.max(monto, pagadoAcumulado);
+    } else {
+      remanente = Math.round(monto * 100) / 100;
+    }
+
     const saldadas: Venta[] = [];
 
     for (const v of ventasPendientes) {
@@ -498,6 +545,10 @@ export class VentaRepositorio {
           ventaActualizada.metodoPago = metodoPago;
           saldadas.push(ventaActualizada);
         }
+      } else {
+        // En amortización cronológica, el remanente es absorbido parcialmente por la venta más antigua;
+        // no debe saltar esta deuda pendiente para saldar indebidamente ventas más recientes.
+        break;
       }
     }
 

@@ -130,5 +130,35 @@ describe('Servicio de Dominio: Calculador de Costos y Márgenes', () => {
     expect(margenPesos).toBe(-1500);
     expect(margenPorcentaje).toBe(0);
   });
+
+  it('debe sumar el gasto fijo por porción al costo unitario de elaboración', () => {
+    const ingredientes: RecetaIngredienteItem[] = [
+      {
+        materiaPrimaId: 'm1',
+        nombreMateriaPrima: 'Harina',
+        cantidad: 0.5,
+        unidadMedida: 'kg',
+        costoUnitario: 2000,
+      },
+    ];
+
+    // Costo ingredientes: 1000. Gasto fijo por porción: 500 -> Costo total: 1500
+    const costoConGastoFijo = calcularCostoReceta(ingredientes, 500);
+    expect(costoConGastoFijo).toBe(1500);
+
+    // Si la receta no tiene ingredientes, debe retornar 0 aún con gasto fijo
+    expect(calcularCostoReceta([], 500)).toBe(0);
+  });
+
+  it('debe recalcular el estado del margen considerando el gasto fijo por porción', () => {
+    // Precio 10.000, Costo ingredientes 7.000 (Margen: 3.000 / 30% -> SALUDABLE)
+    expect(clasificarMargen(30, 3000, 7000, 10000, 0)).toBe('SALUDABLE');
+
+    // Con gasto fijo de $500: Costo 7.500 (Margen: 2.500 / 25% -> ADVERTENCIA)
+    expect(clasificarMargen(30, 3000, 7000, 10000, 500)).toBe('ADVERTENCIA');
+
+    // Con gasto fijo de $3.500: Costo 10.500 (Margen: -500 -> PERDIDA)
+    expect(clasificarMargen(30, 3000, 7000, 10000, 3500)).toBe('PERDIDA');
+  });
 });
 

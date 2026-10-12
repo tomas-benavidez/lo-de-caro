@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { MateriaPrima } from '../../domain/models/materiaPrima.ts';
+import { Gasto } from '../../domain/models/gasto.ts';
 import { evaluarEstadoStock } from '../../domain/services/calculadorCostos.ts';
 import { Boton } from './Boton.tsx';
 
 export interface ListaMateriasPrimasProps {
   materiasPrimas: MateriaPrima[];
+  gastos?: Gasto[];
   cargando: boolean;
   error: string | null;
   onAbrirNuevoModal: () => void;
@@ -26,11 +28,24 @@ function formatearMoneda(valor: number): string {
 }
 
 /**
+ * Formatea una fecha YYYY-MM-DD a formato argentino DD/MM/YYYY.
+ */
+function formatearFechaArgentina(fechaStr: string): string {
+  if (!fechaStr) return '';
+  const partes = fechaStr.split('T')[0].split('-');
+  if (partes.length === 3) {
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+  return fechaStr;
+}
+
+/**
  * Componente mobile-first para la visualización y filtrado de materias primas.
  * Evita tarjetas anidadas y garantiza contraste accesible WCAG AA.
  */
 export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
   materiasPrimas,
+  gastos = [],
   cargando,
   error,
   onAbrirNuevoModal,
@@ -39,6 +54,14 @@ export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
   onReintentar,
 }) => {
   const [busqueda, setBusqueda] = useState('');
+  const [historialExpandido, setHistorialExpandido] = useState<Record<string, boolean>>({});
+
+  const toggleHistorial = (id: string) => {
+    setHistorialExpandido((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const materiasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -151,80 +174,204 @@ export const ListaMateriasPrimas: React.FC<ListaMateriasPrimasProps> = ({
             const estado = evaluarEstadoStock(item.stockActual, item.stockMinimo);
             const necesitaReposicion = estado === 'REPONER';
 
+            // Recuperar compras asociadas a esta materia prima desde gastos
+            const comprasInsumo = gastos
+              .filter((g) => g.compraMateriaPrima?.materiaPrimaId === item.id)
+              .map((g) => {
+                const cantidad = Number(g.compraMateriaPrima?.cantidadComprada || 0);
+                const nuevoCosto = g.compraMateriaPrima?.nuevoCostoUnitario;
+                const costoCalculado =
+                  nuevoCosto !== undefined && nuevoCosto !== null
+                    ? Number(nuevoCosto)
+                    : cantidad > 0
+                    ? Math.round((Number(g.monto || 0) / cantidad) * 100) / 100
+                    : item.costoUnitario;
+
+                return {
+                  id: g.id,
+                  fecha: g.fecha,
+                  fechaCreacion: g.fechaCreacion,
+                  montoTotal: Number(g.monto || 0),
+                  cantidadComprada: cantidad,
+                  costoUnitario: costoCalculado,
+                };
+              })
+              .sort(
+                (a, b) =>
+                  a.fecha.localeCompare(b.fecha) ||
+                  (a.fechaCreacion || '').localeCompare(b.fechaCreacion || '') ||
+                  a.id.localeCompare(b.id)
+              );
+
+            // Calcular variación porcentual contra la compra cronológica inmediatamente anterior
+            const comprasConVariacion = comprasInsumo.map((compra, index) => {
+              let variacion: number | null = null;
+              if (index > 0) {
+                const anterior = comprasInsumo[index - 1].costoUnitario;
+                if (anterior > 0) {
+                  variacion = Math.round(((compra.costoUnitario - anterior) / anterior) * 1000) / 10;
+                }
+              }
+              return { ...compra, variacion };
+            });
+
+            const cronologiaInversa = [...comprasConVariacion].reverse();
+            const expandido = Boolean(historialExpandido[item.id]);
+
             return (
               <li
                 key={item.id}
-                className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
+                className="p-3.5 space-y-2.5 hover:bg-stone-50/70 transition-colors"
               >
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-stone-900 text-sm truncate">
-                      {item.nombre}
-                    </span>
-                    {necesitaReposicion ? (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-marca-tomate border border-marca-tomate/30"
-                        role="status"
-                        aria-label="Stock bajo: requiere reposición"
-                      >
-                        REPONER
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-stone-900 text-sm truncate">
+                        {item.nombre}
                       </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
-                        role="status"
-                        aria-label="Stock suficiente"
-                      >
-                        OK
-                      </span>
-                    )}
+                      {necesitaReposicion ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-marca-tomate border border-marca-tomate/30"
+                          role="status"
+                          aria-label="Stock bajo: requiere reposición"
+                        >
+                          REPONER
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          role="status"
+                          aria-label="Stock suficiente"
+                        >
+                          OK
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-stone-600">
+                      Stock:{' '}
+                      <strong className={necesitaReposicion ? 'text-marca-tomate' : 'text-stone-800'}>
+                        {item.stockActual} {item.unidadMedida}
+                      </strong>{' '}
+                      <span className="text-stone-400">|</span> Mín: {item.stockMinimo} {item.unidadMedida}
+                    </p>
                   </div>
 
-                  <p className="text-xs text-stone-600">
-                    Stock:{' '}
-                    <strong className={necesitaReposicion ? 'text-marca-tomate' : 'text-stone-800'}>
-                      {item.stockActual} {item.unidadMedida}
-                    </strong>{' '}
-                    <span className="text-stone-400">|</span> Mín: {item.stockMinimo} {item.unidadMedida}
-                  </p>
+                  {/* Precio y acciones con los 5 estados obligatorios */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-stone-100 sm:border-t-0">
+                    <div className="text-left sm:text-right whitespace-nowrap">
+                      <div className="text-sm font-bold text-stone-900">
+                        {formatearMoneda(item.costoUnitario)}
+                      </div>
+                      <div className="text-[11px] text-stone-500">
+                        por {item.unidadMedida}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {onEditar && (
+                        <Boton
+                          type="button"
+                          variante="secundario"
+                          tamano="chico"
+                          onClick={() => onEditar(item)}
+                          aria-label={`Editar ${item.nombre}`}
+                        >
+                          Editar
+                        </Boton>
+                      )}
+
+                      {onEliminar && (
+                        <Boton
+                          type="button"
+                          variante="peligro"
+                          tamano="chico"
+                          onClick={() => onEliminar(item)}
+                          aria-label={`Eliminar ${item.nombre}`}
+                        >
+                          Eliminar
+                        </Boton>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Precio y acciones con los 5 estados obligatorios */}
-                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-stone-100 sm:border-t-0">
-                  <div className="text-left sm:text-right whitespace-nowrap">
-                    <div className="text-sm font-bold text-stone-900">
-                      {formatearMoneda(item.costoUnitario)}
-                    </div>
-                    <div className="text-[11px] text-stone-500">
-                      por {item.unidadMedida}
-                    </div>
-                  </div>
+                {/* Desplegable / Acordeón accesible de Historial de Precios */}
+                <div className="pt-1 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={() => toggleHistorial(item.id)}
+                    aria-expanded={expandido}
+                    aria-controls={`historial-precios-${item.id}`}
+                    className="min-h-[36px] inline-flex items-center gap-1.5 text-xs font-semibold text-marca-canela hover:text-stone-900 active:text-stone-950 px-1 py-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela"
+                  >
+                    <span>{expandido ? '▼ Ocultar Historial de Precios' : '▶ Ver Historial de Precios'}</span>
+                    <span className="text-[11px] font-normal text-stone-500">
+                      ({comprasInsumo.length} {comprasInsumo.length === 1 ? 'compra' : 'compras'})
+                    </span>
+                  </button>
 
-                  <div className="flex items-center gap-2">
-                    {onEditar && (
-                      <Boton
-                        type="button"
-                        variante="secundario"
-                        tamano="chico"
-                        onClick={() => onEditar(item)}
-                        aria-label={`Editar ${item.nombre}`}
-                      >
-                        Editar
-                      </Boton>
-                    )}
+                  {expandido && (
+                    <div
+                      id={`historial-precios-${item.id}`}
+                      className="mt-2 p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-2 animate-fadeIn"
+                    >
+                      <div className="flex items-center justify-between font-bold text-stone-700 text-[11px] border-b border-stone-200 pb-1.5">
+                        <span>Cronología de precios de compra</span>
+                        <span className="text-stone-500 font-normal">
+                          Precio actual: {formatearMoneda(item.costoUnitario)}/{item.unidadMedida}
+                        </span>
+                      </div>
 
-                    {onEliminar && (
-                      <Boton
-                        type="button"
-                        variante="peligro"
-                        tamano="chico"
-                        onClick={() => onEliminar(item)}
-                        aria-label={`Eliminar ${item.nombre}`}
-                      >
-                        Eliminar
-                      </Boton>
-                    )}
-                  </div>
+                      {cronologiaInversa.length === 0 ? (
+                        <p className="text-[11px] text-stone-500 py-1">
+                          No hay compras registradas en Gastos para este insumo aún. Cuando registres una compra de materia prima, verás aquí la evolución de precios y variaciones porcentuales.
+                        </p>
+                      ) : (
+                        <div className="divide-y divide-stone-200/70">
+                          {cronologiaInversa.map((c) => (
+                            <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-stone-900">
+                                    {formatearMoneda(c.costoUnitario)}
+                                  </span>
+                                  <span className="text-stone-500 text-[11px]">
+                                    por {item.unidadMedida}
+                                  </span>
+                                  {c.variacion !== null && (
+                                    <span
+                                      className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                        c.variacion > 0
+                                          ? 'bg-red-50 text-marca-tomate border border-red-200'
+                                          : c.variacion < 0
+                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                          : 'bg-stone-100 text-stone-600'
+                                      }`}
+                                    >
+                                      {c.variacion > 0 ? `+${c.variacion}%` : `${c.variacion}%`}
+                                    </span>
+                                  )}
+                                  {c.variacion === null && (
+                                    <span className="text-[10px] text-stone-400 font-medium">
+                                      (Compra base)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-stone-500 mt-0.5">
+                                  {c.cantidadComprada} {item.unidadMedida} • Total: {formatearMoneda(c.montoTotal)}
+                                </div>
+                              </div>
+
+                              <div className="text-[11px] font-medium text-stone-600 whitespace-nowrap text-right">
+                                {formatearFechaArgentina(c.fecha)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             );

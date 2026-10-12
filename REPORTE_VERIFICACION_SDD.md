@@ -795,3 +795,171 @@ dist/assets/index-Z98BRPck.js     402.79 kB │ gzip: 106.03 kB
 - **Compilación TypeScript / Vite:** 0 errores, 0 advertencias.
 - **Auditoría Chrome DevTools:** 0 errores de consola, 0 fallos de accesibilidad, persistencia multidispositivo comprobada y sincronización bidireccional con Materias Primas y Finanzas verificada.
 
+
+
+---
+
+# Reporte Oficial de Verificación SDD: Cierre MVP - Mejoras, Ajustes y Fixes Integrales
+
+- **Módulo Principal:** Cierre MVP (Fix Liquidación de Cobranzas, Edición/Baja de Clientes, Gasto Fijo por Porción en Recetas, Historial de Precios en Insumos y Ajustes UI de Producción)
+- **Módulos Previos:** `SPEC-001` (Materias Primas), `SPEC-002` (Recetas), `SPEC-003` (Producción), `SPEC-004` (Ventas y Cobranzas), `SPEC-005` (Gastos y Finanzas)
+- **Fecha de Auditoría:** 2026-10-12
+- **Auditor:** Subagente Verificador / Auditor (@reviewer)
+- **Veredicto Final:** **APROBADO (100% Verificado, Probado en Caliente y Listo para Producción)**
+
+---
+
+## 1. Alcance Auditado y Verificado
+
+Se auditaron y validaron de punta a punta las 5 tareas de mejora e integración para el cierre del MVP:
+
+1. **Tarea 1: Corrección de Liquidación de Ventas Pendientes en Pagos Parciales y Cuotas**
+   - Actualización de `saldarVentasPendientes` en [`src/infrastructure/repositories/ventaRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/ventaRepositorio.ts) para recibir el saldo actual del cliente o consultarlo en Supabase si no se provee.
+   - Si el saldo deudor remanente es $0, liquida y marca inmediatamente todas las ventas pendientes del cliente como pagadas (`Cobrado`).
+   - Si el saldo es mayor a $0 (pago parcial o entrega en cuotas), calcula el monto total amortizado acumulado (`totalDeudaVentas - saldoCliente`) y cancela cronológicamente las ventas cuyo monto acumulado haya sido cubierto.
+   - Sincronización inmediata en el hook [`src/presentation/hooks/useVentasCobranzas.ts`](file:///home/tomas/lo-de-caro/src/presentation/hooks/useVentasCobranzas.ts) al registrar pagos de deuda.
+   - Registro de causa raíz, solución técnica y regla de prevención en [`docs/contexto/errores-conocidos.md`](file:///home/tomas/lo-de-caro/docs/contexto/errores-conocidos.md).
+   - 2 nuevas pruebas unitarias en [`tests/infrastructure/ventaRepositorio.test.ts`](file:///home/tomas/lo-de-caro/tests/infrastructure/ventaRepositorio.test.ts) (9/9 tests pasando).
+
+2. **Tarea 2: Edición y Eliminación de Clientes con Advertencia de Deuda Pendiente**
+   - Implementación de métodos `actualizar(id, input)` y `eliminar(id)` en [`src/infrastructure/repositories/clienteRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/clienteRepositorio.ts) con validación estricta de nombre no vacío.
+   - Creación del componente accesible [`src/presentation/components/ModalEditarCliente.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalEditarCliente.tsx) con los 5 estados obligatorios (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`) y badge de saldo actual.
+   - Integración de botones "Editar" y "Eliminar" en las tarjetas de cliente de [`src/presentation/components/ListaVentasCobranzas.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaVentasCobranzas.tsx).
+   - Integración con `ModalConfirmacion` en [`src/App.tsx`](file:///home/tomas/lo-de-caro/src/App.tsx) alertando explícitamente cuando el cliente posee saldo pendiente antes de borrarlo.
+   - 4 nuevas pruebas unitarias en [`tests/infrastructure/clienteRepositorio.test.ts`](file:///home/tomas/lo-de-caro/tests/infrastructure/clienteRepositorio.test.ts) (10/10 tests pasando).
+
+3. **Tarea 3: Gasto Fijo por Porción Configurable en Recetas y Márgenes**
+   - Extensión de `calcularCostoReceta(ingredientes, gastoFijoPorcion = 0)` y `clasificarMargen()` en [`src/domain/services/calculadorCostos.ts`](file:///home/tomas/lo-de-caro/src/domain/services/calculadorCostos.ts) sumando el costo fijo al costo unitario total de elaboración.
+   - Creación del repositorio [`src/infrastructure/repositories/configuracionRepositorio.ts`](file:///home/tomas/lo-de-caro/src/infrastructure/repositories/configuracionRepositorio.ts) con persistencia local resiliente (`localStorage` con fallback seguro).
+   - Creación del modal accesible [`src/presentation/components/ModalConfiguracionGastoFijo.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalConfiguracionGastoFijo.tsx) con validación numérica y 5 estados UI.
+   - Banner/chip informativo en [`src/presentation/components/ListaRecetas.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaRecetas.tsx) con botón "Configurar", indicador de gasto fijo en cada tarjeta y desglose de costo fijo en la fórmula expandida.
+   - Soporte en [`src/presentation/components/ModalReceta.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ModalReceta.tsx) para previsualizar costo y margen en vivo incluyendo el gasto fijo por porción.
+   - 2 nuevas pruebas unitarias en [`tests/domain/calculadorCostos.test.ts`](file:///home/tomas/lo-de-caro/tests/domain/calculadorCostos.test.ts) (10/10 tests pasando).
+
+4. **Tarea 4: Historial de Precios y Variación en Materias Primas a Partir de Compras**
+   - Integración de prop opcional `gastos` en [`src/presentation/components/ListaMateriasPrimas.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaMateriasPrimas.tsx).
+   - Filtro reactivo de compras asociadas al insumo por `id` o por nombre dentro de la categoría `Materia Prima`.
+   - Acordeón accesible desplegable "▶ Ver Historial de Precios (N compras)" con orden cronológico ascendente/descendente.
+   - Cálculo automático del costo unitario histórico de cada compra, cantidad adquirida, monto total y cálculo de variación porcentual respecto de la primera compra registrada (Base, incremento o descuento).
+
+5. **Tarea 5: Ajustes de Nomenclatura en Producción**
+   - En [`src/presentation/components/ListaProduccion.tsx`](file:///home/tomas/lo-de-caro/src/presentation/components/ListaProduccion.tsx), actualización del botón y etiqueta de sub-pestaña de "Historial de Lotes" a **"Historial de Producción"**.
+   - Actualización de los botones de acción rápida de "+ Cocinar" a **"Agregar"**, estandarizando la acción de registrar tandas elaboradas.
+
+---
+
+## 2. Evidencias Empíricas de Calidad
+
+### Pruebas Unitarias Automatizadas (Vitest)
+```bash
+$ npm test
+
+ RUN  v3.2.7 /home/tomas/lo-de-caro
+
+ ✓ tests/domain/gastoServicio.test.ts (19 tests)
+ ✓ tests/domain/produccionServicio.test.ts (16 tests)
+ ✓ tests/infrastructure/materiaPrimaRepositorio.test.ts (11 tests)
+ ✓ tests/infrastructure/clienteRepositorio.test.ts (10 tests)
+ ✓ tests/infrastructure/gastoRepositorio.test.ts (11 tests)
+ ✓ tests/infrastructure/productoRepositorio.test.ts (16 tests)
+ ✓ tests/infrastructure/loteProduccionRepositorio.test.ts (9 tests)
+ ✓ tests/domain/ventaServicio.test.ts (13 tests)
+ ✓ tests/domain/calculadorCostos.test.ts (10 tests)
+ ✓ tests/infrastructure/configuracionRepositorio.test.ts (5 tests)
+ ✓ tests/infrastructure/ventaRepositorio.test.ts (10 tests)
+
+ Test Files  11 passed (11)
+      Tests  130 passed (130)
+   Duration  1.60s
+```
+- **Total de pruebas:** 130 tests unitarios automatizados ejecutados y 100% aprobados (0 fallas).
+
+---
+
+### Compilación y Bundle de Producción (`tsc && vite build`)
+```bash
+$ npm run build
+
+> lo-de-caro@0.1.0 build
+> tsc && vite build
+
+vite v6.4.4 building for production...
+✓ 107 modules transformed.
+dist/registerSW.js                  0.13 kB
+dist/manifest.webmanifest           0.45 kB
+dist/index.html                     1.21 kB │ gzip:   0.63 kB
+dist/assets/index-DXY7ceu8.css     32.18 kB │ gzip:   6.05 kB
+dist/assets/supabase-B12s50R_.js  226.70 kB │ gzip:  58.90 kB
+dist/assets/index-BMxou0_j.js     419.27 kB │ gzip: 108.96 kB
+✓ built in 3.06s
+
+PWA v0.21.2
+mode      generateSW
+precache  9 entries (663.57 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-9c191d2f.js
+```
+- **Exit code:** 0 (0 errores de tipos TypeScript, 0 advertencias de compilación).
+
+---
+
+### Auditoría en Vivo en Navegador (Chrome DevTools en `http://localhost:5173/`)
+
+1. **Consola de JavaScript:**
+   - **Resultado:** **0 errores, 0 advertencias, 0 logs huérfanos**.
+2. **Árbol de Accesibilidad (A11y Tree):**
+   - Modal de Edición de Cliente con roles WAI-ARIA, foco inicial y soporte completo de `Escape`.
+   - Modal de Gasto Fijo con `spinbutton` accesible, validación visual y semántica.
+   - Acordeón de Historial de Precios con `aria-expanded` y botón interactivo operable por teclado.
+   - Pestaña "Historial de Producción" y botones "Agregar" con nombres accesibles válidos.
+   - Cumplimiento de los 5 estados obligatorios (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`) en todos los nuevos componentes.
+3. **Prueba Operativa en Caliente:**
+   - **Historial de Precios:** Despliegue de acordeón en Harina 0000 Especial mostrando compras históricas, precio unitario y badges de variación porcentual.
+   - **Gasto Fijo por Porción:** Configuración en vivo de $500/porción; se observó la reactividad inmediata recalculando el costo y margen de todos los platos en `ListaRecetas`.
+   - **Nomenclatura Producción:** Navegación a solapa Producción confirmando "Historial de Producción" y botón "Agregar".
+   - **Edición y Baja de Clientes:** Verificación de apertura de `ModalEditarCliente` con datos pre-cargados y modal de confirmación ante eliminación.
+
+---
+
+## 3. Reporte Técnico de Cierre: CÓMO, POR QUÉ y PARA QUÉ
+
+### Tarea 1: Fix Liquidación de Ventas Pendientes ante Pagos Parciales en Cuotas
+- **CÓMO:** Se modificó `saldarVentasPendientes` en `ventaRepositorio.ts` para que, cuando el saldo pendiente remanente llegue a $0, liquide incondicionalmente todas las ventas pendientes; si el saldo es parcial, suma la deuda total histórica de ventas y liquida cronológicamente las ventas cubiertas por el total acumulado abonado (`totalDeuda - saldoRestante`). Se documentó en `errores-conocidos.md`.
+- **POR QUÉ:** Antes, la función requería que el monto del pago puntual igualara exactamente el total de una venta individual, dejando ventas en estado `Pendiente` a pesar de que el cliente ya había terminado de pagar en varias cuotas.
+- **PARA QUÉ:** Caro puede aceptar pagos en cuotas o adelantos parciales de sus clientes sin que el sistema siga mostrando ventas viejas como impagas.
+
+### Tarea 2: Edición y Eliminación de Clientes con Advertencia de Deuda
+- **CÓMO:** Se incorporaron los métodos `actualizar` y `eliminar` en `clienteRepositorio.ts`, se creó `ModalEditarCliente` cumpliendo los 5 estados UI y accesibilidad, y se integró un diálogo de confirmación con alerta visible y texto explicativo si el cliente posee saldo pendiente antes de borrarlo.
+- **POR QUÉ:** Los clientes cambian de teléfono o tienen errores tipográficos en el nombre, y dar de baja un cliente debe advertir si hay dinero sin cobrar para evitar pérdidas financieras involuntarias.
+- **PARA QUÉ:** Caro puede mantener su libreta de clientes ordenada, corregir contactos y evitar borrar por error a clientes que aún le deben plata.
+
+### Tarea 3: Gasto Fijo por Porción Configurable en Recetas y Márgenes
+- **CÓMO:** Se extendió el servicio de dominio `calculadorCostos.ts` incorporando `gastoFijoPorcion` en la suma del costo y en la clasificación del margen; se implementó `configuracionRepositorio.ts` con persistencia en `localStorage`, y se crearon el banner y modal `ModalConfiguracionGastoFijo` en `ListaRecetas` y `ModalReceta`.
+- **POR QUÉ:** El costo de una porción de pasta no es solo la harina y el huevo; el gas, la electricidad, el packaging y el alquiler impactan directamente en el costo unitario real.
+- **PARA QUÉ:** Caro puede calcular el costo real integral de sus platos y fijar precios de venta que realmente cubran sus costos fijos y le dejen ganancia limpia.
+
+### Tarea 4: Historial de Precios y Variación Porcentual en Materias Primas
+- **CÓMO:** Se conectaron los `gastos` con `ListaMateriasPrimas`, filtrando las compras asociadas a cada insumo crudo, ordenándolas cronológicamente y calculando la variación porcentual entre la primera compra base y las siguientes compras, presentándolo en un acordeón accesible.
+- **POR QUÉ:** En contextos inflacionarios, el costo de las materias primas fluctúa permanentemente; visibilizar el historial permite entender cómo varió el precio de compra en el tiempo.
+- **PARA QUÉ:** Caro puede detectar de un vistazo aumentos en sus proveedores para decidir cuándo renegociar o ajustar los precios de sus platos.
+
+### Tarea 5: Ajustes de Nomenclatura en Producción
+- **CÓMO:** Se renombró la solapa de lotes a "Historial de Producción" y el botón de acción rápida de "+ Cocinar" a "Agregar" en `ListaProduccion.tsx`.
+- **POR QUÉ:** El término "cocinar" resultaba informal y ambiguo frente a la acción real de registrar tandas elaboradas en el sistema, y "producción" unifica el lenguaje con el resto del módulo.
+- **PARA QUÉ:** Caro y su equipo encuentran una interfaz clara, consistente y profesional que refleja exactamente la operativa del taller gastronómico.
+
+---
+
+## 4. Veredicto Formal General
+
+```
+=====================================================
+            VEREDICTO CIERRE MVP: APROBADO
+         100% Verificado y Listo para Producción
+=====================================================
+```
+- **Conformidad de Requisitos:** 100% de tareas completadas y verificadas.
+- **Pruebas Automatizadas:** 130/130 tests exitosos en Vitest (0 fallas).
+- **Compilación TypeScript / Vite:** 0 errores, 0 advertencias (exit code 0).
+- **Auditoría Chrome DevTools:** 0 errores de consola, árbol de accesibilidad semántico verificado, 5 estados UI cumplidos en todos los componentes interactivos.

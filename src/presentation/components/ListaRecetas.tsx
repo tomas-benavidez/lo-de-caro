@@ -11,6 +11,8 @@ export interface ListaRecetasProps {
   productos: Producto[];
   cargando: boolean;
   error: string | null;
+  gastoFijoPorcion?: number;
+  onConfigurarGastoFijo?: () => void;
   onAbrirNuevoModal: () => void;
   onEditar?: (producto: Producto) => void;
   onEliminar?: (producto: Producto) => void;
@@ -46,6 +48,8 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
   productos,
   cargando,
   error,
+  gastoFijoPorcion = 0,
+  onConfigurarGastoFijo,
   onAbrirNuevoModal,
   onEditar,
   onEliminar,
@@ -128,6 +132,41 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
         </Boton>
       </div>
 
+      {/* Banner accesible de Gasto Fijo por Porción */}
+      <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xl shrink-0" aria-hidden="true">💡</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-stone-900">
+                Costo fijo:
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-white text-marca-canela border border-amber-300">
+                ${gastoFijoPorcion.toLocaleString('es-AR')} / porción
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-600 mt-0.5 truncate">
+              {gastoFijoPorcion > 0
+                ? 'Sumado al costo de elaboración de cada porción para costeo y margen real.'
+                : 'Sin costo fijo configurado. Tocá en configurar para definirlo.'}
+            </p>
+          </div>
+        </div>
+
+        {onConfigurarGastoFijo && (
+          <Boton
+            type="button"
+            variante="secundario"
+            tamano="chico"
+            onClick={onConfigurarGastoFijo}
+            aria-label="Configurar gasto fijo por porción"
+            className="shrink-0 font-medium"
+          >
+            Configurar
+          </Boton>
+        )}
+      </div>
+
       {/* Buscador accesible con los 5 estados */}
       <div className="relative">
         <label htmlFor="buscador-recetas" className="sr-only">
@@ -201,7 +240,7 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
           {productosFiltrados.map((producto) => {
             const tieneIngredientes = producto.ingredientes.length > 0;
             const costoProduccion = tieneIngredientes
-              ? calcularCostoReceta(producto.ingredientes)
+              ? calcularCostoReceta(producto.ingredientes, gastoFijoPorcion)
               : 0;
             const { margenPesos, margenPorcentaje } = calcularMargenGanancia(
               producto.precioLista,
@@ -282,7 +321,7 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
 
                   <div className="border-x border-stone-200/80 px-1">
                     <span className="block text-[11px] text-stone-500 font-medium">
-                      Costo Insumos
+                      {gastoFijoPorcion > 0 ? 'Costo Total' : 'Costo Insumos'}
                     </span>
                     {tieneIngredientes ? (
                       <strong className="text-sm font-bold text-stone-700">
@@ -378,6 +417,17 @@ export const ListaRecetas: React.FC<ListaRecetasProps> = ({
                             </div>
                           );
                         })}
+
+                        {gastoFijoPorcion > 0 && (
+                          <div className="flex justify-between items-center py-1.5 px-2 bg-amber-50/80 rounded border border-amber-200/60 mt-1">
+                            <span className="font-semibold text-amber-900">
+                              💡 Gasto fijo por porción
+                            </span>
+                            <span className="font-bold text-amber-900">
+                              +{formatearMoneda(gastoFijoPorcion)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

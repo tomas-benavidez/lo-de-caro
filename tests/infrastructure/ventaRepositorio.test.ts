@@ -368,6 +368,156 @@ describe('VentaRepositorio & Mapeadores', () => {
       expect(mockUpdate).toHaveBeenCalledWith({ estado_pago: 'Pagado' });
       expect(mockEqUpdate).toHaveBeenCalledWith('id', 'v-p1');
     });
+
+    it('debe saldar una venta de $10.000 abonada en 2 pagos parciales cuando el saldo llega a $0', async () => {
+      const mockVenta10k = [
+        {
+          id: 'v-10k',
+          fecha: '2026-10-09',
+          cliente_id: 'c-1',
+          total: 10000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-09T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+      ];
+
+      const mockOrderCreatedAt = vi.fn().mockResolvedValue({
+        data: mockVenta10k,
+        error: null,
+      });
+      const mockOrderFecha = vi.fn().mockReturnValue({ order: mockOrderCreatedAt });
+      const mockEqEstado = vi.fn().mockReturnValue({ order: mockOrderFecha });
+      const mockEqCliente = vi.fn().mockReturnValue({ eq: mockEqEstado });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEqCliente });
+
+      const mockEqUpdate = vi.fn().mockResolvedValue({ error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'ventas') {
+          return { select: mockSelect, update: mockUpdate };
+        }
+        return {};
+      });
+
+      // Pago 1: $5.000 (saldo restante del cliente: $5.000) -> La venta de $10.000 sigue pendiente
+      const saldadasPago1 = await repo.saldarVentasPendientes('c-1', 5000, 'Efectivo', 5000);
+      expect(saldadasPago1).toHaveLength(0);
+      expect(mockUpdate).not.toHaveBeenCalled();
+
+      // Pago 2: $5.000 (saldo restante del cliente: $0) -> La venta de $10.000 debe quedar saldada
+      const saldadasPago2 = await repo.saldarVentasPendientes('c-1', 5000, 'Efectivo', 0);
+      expect(saldadasPago2).toHaveLength(1);
+      expect(saldadasPago2[0].id).toBe('v-10k');
+      expect(saldadasPago2[0].estadoPago).toBe('Cobrado');
+      expect(mockUpdate).toHaveBeenCalledWith({ estado_pago: 'Pagado' });
+      expect(mockEqUpdate).toHaveBeenCalledWith('id', 'v-10k');
+    });
+
+    it('debe saldar ventas acumuladas en orden cronológico cuando pagos parciales cubren la primera venta', async () => {
+      const mockVentas = [
+        {
+          id: 'v-6k',
+          fecha: '2026-10-08',
+          cliente_id: 'c-1',
+          total: 6000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-08T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+        {
+          id: 'v-4k',
+          fecha: '2026-10-09',
+          cliente_id: 'c-1',
+          total: 4000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-09T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+      ];
+
+      const mockOrderCreatedAt = vi.fn().mockResolvedValue({
+        data: mockVentas,
+        error: null,
+      });
+      const mockOrderFecha = vi.fn().mockReturnValue({ order: mockOrderCreatedAt });
+      const mockEqEstado = vi.fn().mockReturnValue({ order: mockOrderFecha });
+      const mockEqCliente = vi.fn().mockReturnValue({ eq: mockEqEstado });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEqCliente });
+
+      const mockEqUpdate = vi.fn().mockResolvedValue({ error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'ventas') {
+          return { select: mockSelect, update: mockUpdate };
+        }
+        return {};
+      });
+
+      // Total deuda: $10.000. Cliente paga $3.000 en cuota 2 tras haber pagado $4.000 antes (saldo restante $3.000).
+      // Pagado acumulado = 10000 - 3000 = $7.000 -> Debe cubrir la primera venta de $6.000.
+      const saldadas = await repo.saldarVentasPendientes('c-1', 3000, 'Transferencia', 3000);
+      expect(saldadas).toHaveLength(1);
+      expect(saldadas[0].id).toBe('v-6k');
+      expect(saldadas[0].estadoPago).toBe('Cobrado');
+    });
+
+    it('no debe saltear una venta anterior mayor para saldar una venta posterior menor si el pago no cubre la anterior', async () => {
+      const mockVentas = [
+        {
+          id: 'v-10k-antigua',
+          fecha: '2026-10-01',
+          cliente_id: 'c-1',
+          total: 10000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-01T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+        {
+          id: 'v-3k-reciente',
+          fecha: '2026-10-05',
+          cliente_id: 'c-1',
+          total: 3000,
+          estado_pago: 'Pendiente',
+          created_at: '2026-10-05T10:00:00Z',
+          clientes: { nombre_apellido: 'Verónica' },
+          venta_items: [],
+        },
+      ];
+
+      const mockOrderCreatedAt = vi.fn().mockResolvedValue({
+        data: mockVentas,
+        error: null,
+      });
+      const mockOrderFecha = vi.fn().mockReturnValue({ order: mockOrderCreatedAt });
+      const mockEqEstado = vi.fn().mockReturnValue({ order: mockOrderFecha });
+      const mockEqCliente = vi.fn().mockReturnValue({ eq: mockEqEstado });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEqCliente });
+
+      const mockEqUpdate = vi.fn().mockResolvedValue({ error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqUpdate });
+
+      mockSupabase.from.mockImplementation((tabla: string) => {
+        if (tabla === 'ventas') {
+          return { select: mockSelect, update: mockUpdate };
+        }
+        return {};
+      });
+
+      // Total deuda: $13.000. Cliente paga $5.000 (saldo restante: $8.000).
+      // El remanente ($5.000) amortiza parcialmente la deuda de $10.000 pero no la cancela.
+      // No debe saltear a la de $3.000 para saldarla fuera de orden cronológico.
+      const saldadas = await repo.saldarVentasPendientes('c-1', 5000, 'Efectivo', 8000);
+      expect(saldadas).toHaveLength(0);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
   });
 });
+
 
