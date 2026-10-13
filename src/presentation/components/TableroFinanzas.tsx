@@ -137,16 +137,16 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
       </div>
 
       {/* Tarjetas de Resumen Financiero Real */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {/* Ingresos Cobrados */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-emerald-200 transition-colors">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        {/* Ingresos Cobrados (Métrica Maestra) */}
+        <div className="bg-white p-3.5 sm:p-4 lg:p-5 rounded-xl border border-stone-200 shadow-xs hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
               Ingresos Cobrados
             </span>
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
           </div>
-          <span className="text-lg sm:text-2xl font-bold text-emerald-700 block mt-1">
+          <span className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-emerald-700 block mt-1 tracking-tight">
             ${resumen.totalCobrado.toLocaleString('es-AR')}
           </span>
           <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
@@ -154,15 +154,15 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           </span>
         </div>
 
-        {/* Gastos Totales */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-red-200 transition-colors">
+        {/* Gastos Totales (Métrica Maestra) */}
+        <div className="bg-white p-3.5 sm:p-4 lg:p-5 rounded-xl border border-stone-200 shadow-xs hover:border-marca-tomate/40 transition-colors">
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
               Gastos Totales
             </span>
-            <span className="inline-block w-2 h-2 rounded-full bg-marca-tomate shrink-0" aria-hidden="true" />
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-marca-tomate shrink-0" aria-hidden="true" />
           </div>
-          <span className="text-lg sm:text-2xl font-bold text-marca-tomate block mt-1">
+          <span className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-marca-tomate block mt-1 tracking-tight">
             ${resumen.totalGastos.toLocaleString('es-AR')}
           </span>
           <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
@@ -170,22 +170,26 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           </span>
         </div>
 
-        {/* Ganancia Neta Real */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
+        {/* Ganancia Neta Real (Métrica Maestra) */}
+        <div
+          className={`bg-white p-3.5 sm:p-4 lg:p-5 rounded-xl border border-stone-200 shadow-xs transition-colors ${
+            resumen.gananciaNeta >= 0 ? 'hover:border-emerald-300' : 'hover:border-marca-tomate/40'
+          }`}
+        >
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
               Ganancia Neta Real
             </span>
             <span
-              className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-                resumen.gananciaNeta >= 0 ? 'bg-[#446b1d]' : 'bg-marca-tomate'
+              className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${
+                resumen.gananciaNeta >= 0 ? 'bg-emerald-600' : 'bg-marca-tomate'
               }`}
               aria-hidden="true"
             />
           </div>
           <span
-            className={`text-lg sm:text-2xl font-bold block mt-1 ${
-              resumen.gananciaNeta >= 0 ? 'text-[#446b1d]' : 'text-marca-tomate'
+            className={`text-lg sm:text-2xl lg:text-3xl font-extrabold block mt-1 tracking-tight ${
+              resumen.gananciaNeta >= 0 ? 'text-emerald-700' : 'text-marca-tomate'
             }`}
           >
             {resumen.gananciaNeta < 0
@@ -197,15 +201,20 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           </span>
         </div>
 
-        {/* Margen Global */}
+        {/* Margen Global (Métrica Complementaria) */}
         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
-          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
-            Margen Global
-          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Margen Global
+            </span>
+            <span className="text-[10px] text-stone-400 font-medium hidden sm:inline" aria-hidden="true">
+              % neto
+            </span>
+          </div>
           <span
             className={`text-lg sm:text-2xl font-bold block mt-1 ${
               resumen.margenPorcentaje >= 30
-                ? 'text-[#446b1d]'
+                ? 'text-emerald-700'
                 : resumen.margenPorcentaje > 0
                 ? 'text-amber-700'
                 : 'text-marca-tomate'
@@ -218,11 +227,16 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           </span>
         </div>
 
-        {/* Ticket Promedio */}
+        {/* Ticket Promedio (Métrica Complementaria) */}
         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
-          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
-            Ticket Promedio
-          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Ticket Promedio
+            </span>
+            <span className="text-[10px] text-stone-400 font-medium hidden sm:inline" aria-hidden="true">
+              Por orden
+            </span>
+          </div>
           <span className="text-lg sm:text-2xl font-bold text-stone-800 block mt-1">
             ${resumen.ticketPromedio.toLocaleString('es-AR')}
           </span>
@@ -231,11 +245,16 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           </span>
         </div>
 
-        {/* Total de Ventas */}
+        {/* Total de Ventas y Saldos (Métrica Complementaria) */}
         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
-          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
-            Operaciones
-          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Operaciones
+            </span>
+            <span className="text-[10px] text-stone-400 font-medium hidden sm:inline" aria-hidden="true">
+              Volumen
+            </span>
+          </div>
           <span className="text-lg sm:text-2xl font-bold text-stone-800 block mt-1">
             {resumen.totalVentas} {resumen.totalVentas === 1 ? 'venta' : 'ventas'}
           </span>
@@ -245,7 +264,7 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
                 ${resumen.totalPendiente.toLocaleString('es-AR')} en la calle
               </span>
             ) : (
-              <span className="text-stone-400">Ventas en el período</span>
+              <span className="text-stone-400">Al día (todo cobrado)</span>
             )}
           </span>
         </div>
