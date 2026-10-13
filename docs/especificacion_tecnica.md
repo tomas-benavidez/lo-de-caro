@@ -223,3 +223,18 @@ lo-de-caro/
 * **Reporte de Cierre por Tarea:** Al finalizar cualquier tarea atómica, `@implementer` debe documentar el **CÓMO, POR QUÉ y PARA QUÉ** de la implementación.
 * **Bitácora Antirregresiones:** Todo error técnico no trivial se registra en `docs/contexto/errores-conocidos.md` indicando síntoma, causa raíz y regla preventiva.
 * **Memoria Persistente con Engram:** Al cierre de cada hito verificado, se guarda el estado en Engram (`mem_save`) bajo el tópico `lo-de-caro` para asegurar continuidad entre sesiones.
+
+---
+
+## 8. Módulo de Autenticación y Seguridad (SPEC-006)
+
+### 8.1 Modelo de Seguridad y Gating de Rutas
+Para proteger las fórmulas de costeo, márgenes y balance comercial privado:
+- **Autenticación con Supabase Auth:** Gestión de sesión segura basada en JWT y `refresh_token` almacenados en almacenamiento seguro del navegador.
+- **Sin Registro Público:** Prohibido el autoservicio de sign-up en frontend. La cuenta de administración se provisiona de forma estricta y directa en Supabase Auth (`auth.users`).
+- **Gating a Nivel Raíz (`App.tsx`):**
+  - Mientras se verifica el token persistido (`cargandoSesion`), se renderiza un splash con la identidad visual.
+  - Si no hay sesión válida, se renderiza exclusivamente `PantallaLogin`.
+  - El componente `PanelPrincipal` (y por ende los hooks `useMateriasPrimas`, `useProductosRecetas`, `useProduccion`, `useVentasCobranzas`, `useGastos`) **no se monta en el árbol de componentes**, imposibilitando cualquier fuga de datos por inspección de red previa a la autenticación.
+- **Cierre de Sesión:** Botón accesible en la cabecera superior que revoca la sesión activa (`signOut()`) y retorna inmediatamente al login.
+

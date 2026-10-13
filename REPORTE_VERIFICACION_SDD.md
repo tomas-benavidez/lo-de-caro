@@ -1005,3 +1005,60 @@ files generated
   - Trampa y restauración de foco verificada en vivo tras modificar objetivo mensual.
   - Navegación reactiva entre períodos (mes corriente, meses anteriores e Histórico Completo) comprobada en caliente.
 
+---
+
+# Reporte Oficial de Verificación SDD: Autenticación y Control de Acceso (SPEC-006)
+
+- **Módulo Auditado:** `SPEC-006` (Módulo de Autenticación, Login Privado y Gating de Vistas)
+- **Fecha de Auditoría:** 2026-10-13
+- **Auditor:** Subagente de Implementación y Auditoría / Antigravity
+- **Veredicto:** **APROBADO (172/172 Tests en Vitest, Compilación limpia y Auditoría Chrome DevTools en Caliente OK)**
+
+## 1. Alcance y Tareas Implementadas
+
+1. **Modelo de Dominio y Validaciones (`src/domain/models/auth.ts`):**
+   - Entidades `Usuario` y `CredencialesLogin`.
+   - Función pura `validarCredenciales()` con control de campos vacíos y formato regex RFC de correo.
+   - Función pura `mapearErrorAuth()` para traducción de errores técnicos y de red a mensajes amigables en español.
+   - 9 pruebas unitarias de dominio pasando en Vitest (`tests/domain/authServicio.test.ts`).
+
+2. **Repositorio de Infraestructura `AuthRepositorio` (`src/infrastructure/repositories/authRepositorio.ts`):**
+   - Integración completa con `supabase.auth.signInWithPassword`, `signOut`, `getSession` y `onAuthStateChange`.
+   - Soporte para inyección de dependencias para testeo aislado con mocks.
+   - 10 pruebas unitarias de infraestructura pasando en Vitest (`tests/infrastructure/authRepositorio.test.ts`).
+
+3. **Hook de Ciclo de Vida `useAuth` (`src/presentation/hooks/useAuth.ts`):**
+   - Control reactivo de la sesión (`usuario`, `cargandoSesion`, `errorAuth`).
+   - Verificación inicial de sesión persistida en el navegador al montar la aplicación.
+   - Suscripción y desuscripción automática al listener `onAuthStateChange`.
+
+4. **Componente Visual `PantallaLogin` (`src/presentation/components/PantallaLogin.tsx`):**
+   - Mobile-first estricto (375px a 420px), centrado en viewport de escritorio.
+   - Inclusión destacada de `/personajes/personaje_principal.png` con halo de marca.
+   - Títulos y subtítulos con identidad institucional ("Lo de Caro", "Ingresá a tu panel de gestión").
+   - Inputs para email y contraseña con botón accesible para mostrar/ocultar texto de contraseña.
+   - 5 estados UI obligatorios en cada control (`Default`, `Hover`, `Active`, `Focus :focus-visible`, `Disabled`).
+   - Cero enlaces de registro público (acceso estrictamente privado).
+
+5. **Protección a Nivel Raíz y Extracción de `PanelPrincipal` (`src/App.tsx`, `src/presentation/components/PanelPrincipal.tsx`):**
+   - Si `cargandoSesion`: Splash de carga con logotipo animado y texto en colores de marca.
+   - Si `!usuario`: Renderiza exclusivamente `PantallaLogin`. NINGÚN hook o tabla de negocio (`materiasPrimas`, `recetas`, `produccion`, `ventas`, `gastos`, `finanzas`) es montado ni consultado.
+   - Si `usuario`: Renderiza `PanelPrincipal` e incorpora en la cabecera un botón accesible de "Cerrar sesión" con estado de carga ("Saliendo...").
+
+## 2. Evidencias de Verificación
+
+- **Pruebas Automatizadas (Vitest):**
+  - **179/179 tests pasando al 100%** (26 nuevos tests correspondientes al módulo de autenticación: 13 de dominio y 13 de infraestructura).
+  - 0 suites fallidas, 0 errores.
+- **Compilación TypeScript y Bundler (`tsc && vite build`):**
+  - Exit code 0, 0 errores, 0 advertencias. Bundle de producción generado limpiamente.
+- **Auditoría en Caliente con Chrome DevTools en `http://localhost:5173/`:**
+  - 0 errores de consola al cargar la página de login.
+  - Árbol de accesibilidad verificado (`RootWebArea`, `image`, `heading`, `form`, `textbox` con `required`, `button`).
+  - Validación de campos requeridos y formato de correo electrónico comprobados en caliente (`alert` WAI-ARIA `assertive`).
+  - Captura y traducción de credenciales inválidas ante Supabase Auth verificada en vivo ("El correo electrónico o la contraseña son incorrectos.").
+  - Alternador de visibilidad de contraseña verificado interactivamente ("Ver contraseña" / "Ocultar contraseña").
+  - Inspección de red: 0 solicitudes a tablas de Postgres antes de autenticar al usuario.
+  - Captura visual de evidencia guardada en `evidencia_pantalla_login.png`.
+
+
