@@ -137,51 +137,73 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
       </div>
 
       {/* Tarjetas de Resumen Financiero Real */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Ingresos Cobrados */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
-            Ingresos Cobrados
-          </span>
-          <span className="text-base sm:text-lg font-bold text-emerald-700 block mt-0.5">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-emerald-200 transition-colors">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Ingresos Cobrados
+            </span>
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+          </div>
+          <span className="text-lg sm:text-2xl font-bold text-emerald-700 block mt-1">
             ${resumen.totalCobrado.toLocaleString('es-AR')}
           </span>
-          <span className="text-[10px] text-stone-400">Ventas cobradas</span>
+          <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
+            Ventas cobradas
+          </span>
         </div>
 
         {/* Gastos Totales */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
-            Gastos Totales
-          </span>
-          <span className="text-base sm:text-lg font-bold text-marca-tomate block mt-0.5">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-red-200 transition-colors">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Gastos Totales
+            </span>
+            <span className="inline-block w-2 h-2 rounded-full bg-marca-tomate shrink-0" aria-hidden="true" />
+          </div>
+          <span className="text-lg sm:text-2xl font-bold text-marca-tomate block mt-1">
             ${resumen.totalGastos.toLocaleString('es-AR')}
           </span>
-          <span className="text-[10px] text-stone-400">Egresos registrados</span>
+          <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
+            Egresos registrados
+          </span>
         </div>
 
         {/* Ganancia Neta Real */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
-            Ganancia Neta Real
-          </span>
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
+              Ganancia Neta Real
+            </span>
+            <span
+              className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                resumen.gananciaNeta >= 0 ? 'bg-[#446b1d]' : 'bg-marca-tomate'
+              }`}
+              aria-hidden="true"
+            />
+          </div>
           <span
-            className={`text-base sm:text-lg font-bold block mt-0.5 ${
+            className={`text-lg sm:text-2xl font-bold block mt-1 ${
               resumen.gananciaNeta >= 0 ? 'text-[#446b1d]' : 'text-marca-tomate'
             }`}
           >
-            ${resumen.gananciaNeta.toLocaleString('es-AR')}
+            {resumen.gananciaNeta < 0
+              ? `-$${Math.abs(resumen.gananciaNeta).toLocaleString('es-AR')}`
+              : `$${resumen.gananciaNeta.toLocaleString('es-AR')}`}
           </span>
-          <span className="text-[10px] text-stone-400">Ingresos - Gastos</span>
+          <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
+            Ingresos menos gastos
+          </span>
         </div>
 
         {/* Margen Global */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
+          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
             Margen Global
           </span>
           <span
-            className={`text-base sm:text-lg font-bold block mt-0.5 ${
+            className={`text-lg sm:text-2xl font-bold block mt-1 ${
               resumen.margenPorcentaje >= 30
                 ? 'text-[#446b1d]'
                 : resumen.margenPorcentaje > 0
@@ -191,32 +213,40 @@ export const TableroFinanzas: React.FC<TableroFinanzasProps> = ({ ventas, gastos
           >
             {resumen.margenPorcentaje}%
           </span>
-          <span className="text-[10px] text-stone-400">Sobre ingresos</span>
+          <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
+            Sobre ingresos
+          </span>
         </div>
 
         {/* Ticket Promedio */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
+          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
             Ticket Promedio
           </span>
-          <span className="text-base sm:text-lg font-bold text-stone-800 block mt-0.5">
+          <span className="text-lg sm:text-2xl font-bold text-stone-800 block mt-1">
             ${resumen.ticketPromedio.toLocaleString('es-AR')}
           </span>
-          <span className="text-[10px] text-stone-400">Por venta cobrada</span>
+          <span className="text-[11px] sm:text-xs text-stone-400 block mt-0.5">
+            Por venta cobrada
+          </span>
         </div>
 
         {/* Total de Ventas */}
-        <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-          <span className="text-[11px] font-semibold text-stone-500 block truncate">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 shadow-xs hover:border-stone-300 transition-colors">
+          <span className="text-xs sm:text-sm font-semibold text-stone-600 block">
             Operaciones
           </span>
-          <span className="text-base sm:text-lg font-bold text-stone-800 block mt-0.5">
-            {resumen.totalVentas}
+          <span className="text-lg sm:text-2xl font-bold text-stone-800 block mt-1">
+            {resumen.totalVentas} {resumen.totalVentas === 1 ? 'venta' : 'ventas'}
           </span>
-          <span className="text-[10px] text-stone-400 block truncate">
-            {resumen.totalPendiente > 0
-              ? `$${resumen.totalPendiente.toLocaleString('es-AR')} a cobrar`
-              : 'Ventas en el período'}
+          <span className="text-[11px] sm:text-xs block mt-0.5">
+            {resumen.totalPendiente > 0 ? (
+              <span className="text-amber-700 font-semibold">
+                ${resumen.totalPendiente.toLocaleString('es-AR')} en la calle
+              </span>
+            ) : (
+              <span className="text-stone-400">Ventas en el período</span>
+            )}
           </span>
         </div>
       </div>

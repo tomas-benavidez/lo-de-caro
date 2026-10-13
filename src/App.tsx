@@ -489,7 +489,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
       {/* Encabezado Superior Mobile-First */}
       <header className="bg-white/80 backdrop-blur border-b border-stone-200/80 sticky top-0 z-30 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl lg:max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img
               src="/logos/png rojo.svg"
@@ -515,7 +515,7 @@ export const App: React.FC = () => {
 
       {/* Navegación por Solapas (Sin pills saturadas, limpio y accesible) */}
       <nav className="bg-white border-b border-stone-200 sticky top-[57px] z-20 px-2 overflow-x-auto scrollbar-none">
-        <div className="max-w-2xl mx-auto flex space-x-1 py-1.5">
+        <div className="max-w-2xl lg:max-w-5xl mx-auto flex space-x-1 py-1.5">
           {[
             { id: 'materiasPrimas', label: 'Materias Primas' },
             { id: 'recetas', label: 'Recetas' },
@@ -543,7 +543,7 @@ export const App: React.FC = () => {
       </nav>
 
       {/* Área de Contenido Principal */}
-      <main className="flex-1 max-w-2xl w-full mx-auto p-4">
+      <main className="flex-1 max-w-2xl lg:max-w-5xl w-full mx-auto p-4">
         {pestana === 'materiasPrimas' && (
           <ListaMateriasPrimas
             materiasPrimas={materiasPrimas}
