@@ -12,16 +12,16 @@
   - Integrar alternancia de fondos (`back_1`, `back_2`, `back_3`) según la solapa activa con capa de contraste.  
   *Checks:* `npm run build` (OK), `npm test` (179/179 tests OK), layout responsivo verificado.
 
-- [ ] **TASK-02: Rediseño Visual de Materias Primas**  
+- [x] **TASK-02: Rediseño Visual de Materias Primas**  
   - Modernizar `ListaMateriasPrimas.tsx` según pantalla Stitch `bac160254aa546ab9ed3d8c761a6609f`.  
   - Implementar barra de 4 métricas superiores (Total, Stock Saludable, Alertas, Valuación).  
   - Adaptar filas de ingredientes con badges de stock (`crema-lima` / `hoja-otono`), costos destacados y acordeón de historial.  
-  *Checks:* Tests de insumos pasando, 5 estados en botones.
+  *Checks:* 179/179 tests OK, commit `65d7f5b`.
 
-- [ ] **TASK-03: Rediseño Visual de Recetas y Costeo**  
+- [x] **TASK-03: Rediseño Visual de Recetas y Costeo**  
   - Actualizar `ListaRecetas.tsx` según pantalla Stitch `fc51b66d3b6f4e86a198f512aaea4014`.  
   - Tarjetas de recetas con rinde, desglose de costos (MP + Gasto Fijo), margen y precios de venta.  
-  *Checks:* Tests de recetas pasando, cálculo visual exacto.
+  *Checks:* 179/179 tests OK, commit `620d71d`.
 
 - [ ] **TASK-04: Rediseño Visual de Producción y Freezer**  
   - Modernizar `ListaProduccion.tsx` y vistas de lotes según pantalla Stitch `67b6c10819de4eaabd82d5f8654bd57c` y móvil `23df44730589401880597839b82e1e31`.  
