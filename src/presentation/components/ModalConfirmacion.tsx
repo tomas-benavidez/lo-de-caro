@@ -51,7 +51,7 @@ export const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-confirmacion-titulo"
@@ -59,23 +59,43 @@ export const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
       onClick={onCancelar}
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full sm:max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-marca-canela/25 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Franja superior con acento en gradiente de marca */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono shrink-0" />
+
         {/* Cabecera */}
-        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
-          <h2 id="modal-confirmacion-titulo" className="text-base font-bold text-stone-900">
-            {titulo}
-          </h2>
+        <div className="px-5 py-4 border-b border-stone-200/80 flex items-center justify-between bg-stone-50/80 shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-marca-tomate/10 border border-marca-tomate/20 flex items-center justify-center text-marca-tomate shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 id="modal-confirmacion-titulo" className="font-titular font-bold text-stone-900 text-lg sm:text-xl">
+                {titulo}
+              </h2>
+            </div>
+          </div>
+
+          {/* Detalle decorativo sutil de marca */}
+          <img
+            src="/personajes/Recurso 7.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute right-14 top-3 w-8 h-8 opacity-15 pointer-events-none select-none hidden sm:block"
+          />
 
           <button
             type="button"
             onClick={onCancelar}
             disabled={confirmando}
             aria-label="Cerrar modal de confirmación"
-            className="text-stone-400 hover:text-stone-700 active:text-stone-900 p-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-200 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:pointer-events-none"
           >
-            ✕
+            <span className="text-xl leading-none font-bold" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -84,7 +104,7 @@ export const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
           {error && (
             <div
               role="alert"
-              className="p-3 bg-red-50 border border-marca-tomate/40 rounded-lg text-xs text-marca-tomate font-medium"
+              className="p-3 bg-red-50 border border-marca-tomate/40 rounded-xl text-xs text-marca-tomate font-medium"
             >
               {error}
             </div>
@@ -99,11 +119,11 @@ export const ModalConfirmacion: React.FC<ModalConfirmacionProps> = ({
           </p>
 
           {/* Acciones */}
-          <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-stone-200/80 flex items-center justify-end gap-2.5">
             <Boton
               ref={botonCancelarRef}
               type="button"
-              variante="secundario"
+              variante="cancelar"
               tamano="mediano"
               disabled={confirmando}
               onClick={onCancelar}

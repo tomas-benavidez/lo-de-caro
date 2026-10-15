@@ -118,10 +118,11 @@ export const ModalEditarMetaMensual: React.FC<ModalEditarMetaMensualProps> = ({
   if (!abierto) return null;
 
   const estiloInput =
-    'w-full bg-white border border-stone-300 rounded-lg p-2.5 text-sm text-stone-900 placeholder:text-stone-400 ' +
-    'hover:border-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ' +
-    'focus-visible:border-marca-canela active:border-marca-canela disabled:bg-stone-100 disabled:cursor-not-allowed ' +
-    'transition-colors';
+    'w-full bg-white border border-stone-300 rounded-xl p-2.5 text-sm text-stone-900 placeholder:text-stone-400 ' +
+    'hover:border-marca-canela active:border-marca-canela ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela ' +
+    'disabled:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed ' +
+    'transition-all duration-150';
 
   const textoPeriodo =
     periodo === 'TODOS'
@@ -130,28 +131,53 @@ export const ModalEditarMetaMensual: React.FC<ModalEditarMetaMensualProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-meta-mensual"
       ref={modalRef}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
     >
-      <div className="relative w-full max-w-sm bg-marca-beige rounded-2xl shadow-xl border border-stone-200 overflow-hidden flex flex-col">
+      <div
+        className="relative w-full max-w-sm bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-marca-canela/25 overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Franja superior con acento en gradiente de marca */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono shrink-0" />
+
         {/* Cabecera */}
-        <div className="px-4 py-3 bg-white border-b border-stone-200 flex items-center justify-between shrink-0">
-          <div>
-            <h2 id="titulo-modal-meta-mensual" className="text-base font-bold text-marca-canela">
-              Objetivo de Retiro Mensual
-            </h2>
-            <p className="text-xs text-stone-500">{textoPeriodo}</p>
+        <div className="px-5 py-4 border-b border-stone-200/80 flex items-center justify-between bg-stone-50/80 shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-marca-canela/10 border border-marca-canela/20 flex items-center justify-center text-marca-canela shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 id="titulo-modal-meta-mensual" className="font-titular font-bold text-stone-900 text-lg sm:text-xl">
+                Objetivo de Retiro Mensual
+              </h2>
+              <p className="text-xs text-stone-500">{textoPeriodo}</p>
+            </div>
           </div>
+
+          {/* Detalle decorativo sutil de marca */}
+          <img
+            src="/personajes/Recurso 7.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute right-14 top-3 w-8 h-8 opacity-15 pointer-events-none select-none hidden sm:block"
+          />
+
           <button
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar modal de meta mensual"
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-700 active:text-stone-900 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-200 active:scale-95 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:pointer-events-none"
           >
-            ✕
+            <span className="text-xl leading-none font-bold" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -235,10 +261,10 @@ export const ModalEditarMetaMensual: React.FC<ModalEditarMetaMensualProps> = ({
             </div>
           )}
 
-          <div className="pt-2 border-t border-stone-200 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-stone-200/80 flex items-center justify-end gap-2.5">
             <Boton
               type="button"
-              variante="secundario"
+              variante="cancelar"
               tamano="mediano"
               onClick={onCerrar}
             >
@@ -246,7 +272,7 @@ export const ModalEditarMetaMensual: React.FC<ModalEditarMetaMensualProps> = ({
             </Boton>
             <Boton
               type="submit"
-              variante="primario"
+              variante="tomate"
               tamano="mediano"
             >
               Guardar Objetivo
