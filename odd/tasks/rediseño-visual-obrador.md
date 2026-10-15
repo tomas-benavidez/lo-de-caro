@@ -38,11 +38,11 @@
   - Tarjetas de balance mensual, meta editable con barra de progreso y ranking visual de productos.  
   *Checks:* 179/179 tests OK, commit `6c9e461`.
 
-- [ ] **TASK-07: Estilo de Modales y Formularios**  
+- [x] **TASK-07: Estilo de Modales y Formularios**  
   - Adaptar contenedores de modales (`ModalNuevaMateriaPrima`, `ModalReceta`, `ModalRegistroProduccion`, `ModalNuevaVenta`, `ModalNuevoGasto`) con tarjetas `bg-white/95`, esquinas suaves, bordes canela y 5 estados en controles.  
-  *Checks:* Cierre/apertura sin trabas visuales.
+  *Checks:* 179/179 tests OK, commit `d98c486`.
 
-- [ ] **TASK-08: Verificación Final y Auditoría de Integridad**  
+- [x] **TASK-08: Verificación Final y Auditoría de Integridad**  
   - Ejecución de suite completa de pruebas unitarias (`npm test`).  
   - Auditoría de cero credenciales hardcodeadas y cero regresiones.  
-  *Checks:* 179/179 tests en verde, build estático limpio.
+  *Checks:* 179/179 tests en verde, build estático limpio, cero credenciales hardcodeadas.
