@@ -28,10 +28,10 @@
   - Indicadores de unidades en freezer, lotes cocinados y descuento de stock.  
   *Checks:* 179/179 tests OK, commit `0c0ae27`.
 
-- [ ] **TASK-05: Rediseño Visual de Ventas y Mostrador**  
+- [x] **TASK-05: Rediseño Visual de Ventas y Mostrador**  
   - Adaptar `ListaVentasCobranzas.tsx` según pantalla Stitch `acdec45b7493476083bdbf3645c3ffcc` y móvil `b160969070b84b419b6f60e0c54987db`.  
   - Tarjetas de ventas, gestión de clientes con deudas y cobros con estética de obrador.  
-  *Checks:* Tests de ventas pasando.
+  *Checks:* 179/179 tests OK, build OK, commit `0a37a26`.
 
 - [ ] **TASK-06: Rediseño Visual de Gastos y Tablero de Finanzas**  
   - Actualizar `ListaGastos.tsx` (Stitch `b0c36b7a133545f49f7af45f56d1fbd4`) y `TableroFinanzas.tsx` (Stitch `f0da3c1673914f6f8e58d891ec4349fa`).  
