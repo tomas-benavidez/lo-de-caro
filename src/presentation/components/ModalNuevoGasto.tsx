@@ -179,33 +179,58 @@ export const ModalNuevoGasto: React.FC<ModalNuevoGastoProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-nuevo-gasto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !guardando) onCerrar();
+      }}
     >
-      <div className="relative w-full max-w-lg my-6 bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div
+        className="relative w-full max-w-lg bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-marca-canela/25 overflow-hidden flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Franja superior con acento en gradiente de marca */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono shrink-0" />
+
         {/* Encabezado */}
-        <div className="px-5 py-4 bg-marca-beige border-b border-stone-200 flex items-center justify-between">
-          <div>
-            <h2
-              id="titulo-modal-nuevo-gasto"
-              className="text-base font-bold text-stone-900"
-            >
-              Nuevo Gasto o Egreso
-            </h2>
-            <p className="text-xs text-stone-600">
-              Registrá compras de insumos, packaging o servicios del local
-            </p>
+        <div className="px-5 py-4 border-b border-stone-200/80 flex items-center justify-between bg-stone-50/80 shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-marca-canela/10 border border-marca-canela/20 flex items-center justify-center text-marca-canela shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2
+                id="titulo-modal-nuevo-gasto"
+                className="font-titular font-bold text-stone-900 text-lg sm:text-xl"
+              >
+                Nuevo Gasto o Egreso
+              </h2>
+              <p className="text-xs text-stone-500">
+                Registrá compras de insumos, packaging o servicios del local
+              </p>
+            </div>
           </div>
+
+          {/* Detalle decorativo sutil de marca */}
+          <img
+            src="/personajes/Recurso 7.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute right-14 top-3 w-8 h-8 opacity-15 pointer-events-none select-none hidden sm:block"
+          />
+
           <button
             type="button"
             onClick={onCerrar}
             disabled={guardando}
-            aria-label="Cerrar ventana"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-200/60 active:bg-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 transition-colors"
+            aria-label="Cerrar modal"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-200 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:pointer-events-none"
           >
-            ✕
+            <span className="text-xl leading-none font-bold" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -485,10 +510,10 @@ export const ModalNuevoGasto: React.FC<ModalNuevoGastoProps> = ({
           </div>
 
           {/* Botones de acción */}
-          <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-stone-200/80 flex items-center justify-end gap-2.5">
             <Boton
               type="button"
-              variante="secundario"
+              variante="cancelar"
               tamano="mediano"
               disabled={guardando}
               onClick={onCerrar}
@@ -497,7 +522,7 @@ export const ModalNuevoGasto: React.FC<ModalNuevoGastoProps> = ({
             </Boton>
             <Boton
               type="submit"
-              variante="primario"
+              variante="tomate"
               tamano="mediano"
               disabled={guardando}
             >

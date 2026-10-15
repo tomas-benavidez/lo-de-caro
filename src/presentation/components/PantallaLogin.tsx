@@ -62,35 +62,70 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-center items-center bg-marca-beige px-4 py-8 sm:px-6">
-      {/* Contenedor principal de Login con tarjeta limpia y borde de identidad */}
-      <div className="w-full max-w-[390px] sm:max-w-md bg-white rounded-2xl shadow-xl border border-stone-200/90 border-t-4 border-t-marca-canela overflow-hidden">
-        {/* Cabecera con Ilustración y Marca */}
-        <div className="bg-gradient-to-b from-stone-50 to-white pt-8 pb-5 px-6 text-center border-b border-stone-100">
-          <div className="relative inline-block mb-3">
-            <div className="absolute inset-0 bg-marca-canela/15 rounded-full blur-md transform scale-110" />
+    <div className="min-h-screen w-full flex flex-col justify-center items-center px-4 py-8 sm:px-6 relative bg-[url('/backgrounds/back_mobile_1.png')] md:bg-[url('/backgrounds/back_desktop_1.png')] bg-cover bg-center bg-fixed">
+      {/* Capa de atmósfera cálida para armonizar fondo y legibilidad */}
+      <div className="absolute inset-0 bg-marca-beige/40 backdrop-blur-[1.5px] pointer-events-none" />
+
+      {/* Contenedor principal de Login con tarjeta limpia y de alto contraste */}
+      <div className="relative w-full max-w-[400px] sm:max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-marca-canela/25 overflow-hidden">
+        {/* Franja superior con acento de marca */}
+        <div className="h-2 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono" />
+
+        {/* Cabecera con Logo Oficial, Ilustración de Caro y Saludo */}
+        <div className="pt-6 pb-4 px-6 text-center border-b border-stone-100/90 relative">
+          {/* Logo oficial de marca */}
+          <div className="mb-3 flex justify-center">
             <img
-              src="/personajes/personaje_principal.png"
-              alt="Cocinera Lo de Caro"
-              className="relative w-28 h-28 sm:w-32 sm:h-32 object-contain mx-auto drop-shadow"
+              src="/logos/png rojo.svg"
+              alt="Logo Lo de Caro"
+              className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
             />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold font-titular text-marca-canela tracking-tight">
-            Lo de Caro — Comida Casera
+
+          {/* Personaje Principal como anfitrión de bienvenida */}
+          <div className="relative inline-block my-2">
+            <div className="absolute inset-0 bg-marca-canela/15 rounded-full blur-xl transform scale-125" />
+            <img
+              src="/personajes/personaje_principal.png"
+              alt="Caro, cocinera y creadora de Lo de Caro"
+              className="relative w-28 h-28 sm:w-32 sm:h-32 object-contain mx-auto drop-shadow-lg transition-transform duration-300 hover:scale-105"
+            />
+            {/* Globo de bienvenida tipo sticker artesanal */}
+            <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-marca-beige border border-marca-canela/40 text-marca-canela text-[11px] font-bold px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+              ¡Hola! Qué lindo verte en la cocina
+            </span>
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-bold text-marca-canela tracking-tight mt-3">
+            Obrador Digital
           </h1>
-          <p className="text-sm font-medium text-stone-600 mt-1">
-            Ingresá a tu panel de gestión
+          <p className="text-xs sm:text-sm font-medium text-stone-600 mt-1">
+            Ingresá a tu panel de gestión de recetas, stock y ventas
           </p>
+
+          {/* Pequeño detalle de personaje secundario como sello de calidad */}
+          <img
+            src="/personajes/Recurso 7.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute top-4 right-4 w-7 h-7 opacity-70 pointer-events-none"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Formulario de Login */}
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-4" noValidate>
           {/* Alerta de Error Accesible */}
           {errorActual && (
             <div
               role="alert"
               aria-live="assertive"
-              className="p-3.5 rounded-lg bg-marca-tomate/10 border border-marca-tomate/30 text-marca-tomate text-xs sm:text-sm font-medium flex items-start space-x-2"
+              className="p-3.5 rounded-xl bg-marca-tomate/10 border border-marca-tomate/30 text-marca-tomate text-xs sm:text-sm font-medium flex items-start space-x-2 shadow-sm"
             >
               <svg
                 className="w-5 h-5 flex-shrink-0 text-marca-tomate mt-0.5"
@@ -111,7 +146,7 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
           )}
 
           {/* Campo: Correo Electrónico */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             <label
               htmlFor="email"
               className="block text-xs sm:text-sm font-bold text-stone-700"
@@ -138,7 +173,7 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
                   }
                 }}
                 placeholder="caro@lodecaro.com"
-                className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 shadow-sm transition-all
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 shadow-sm transition-all
                   hover:border-stone-400
                   active:border-marca-canela
                   focus:outline-none focus:ring-2 focus:ring-marca-canela focus:border-marca-canela
@@ -149,7 +184,7 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
           </div>
 
           {/* Campo: Contraseña */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             <label
               htmlFor="password"
               className="block text-xs sm:text-sm font-bold text-stone-700"
@@ -173,7 +208,7 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
                   }
                 }}
                 placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 pr-10 text-sm rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 shadow-sm transition-all
+                className="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 shadow-sm transition-all
                   hover:border-stone-400
                   active:border-marca-canela
                   focus:outline-none focus:ring-2 focus:ring-marca-canela focus:border-marca-canela
@@ -188,7 +223,7 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 transition-colors
                   hover:text-stone-600
                   active:text-stone-800
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela rounded
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela rounded-lg
                   disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {mostrarPassword ? (
@@ -232,14 +267,14 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
             </div>
           </div>
 
-          {/* Botón de Enviar (Ingresar) con 5 estados y estado de carga */}
+          {/* Botón de Enviar (Ingresar) con 5 estados obligatorios */}
           <div className="pt-2">
             <Boton
               type="submit"
               variante="primario"
               tamano="grande"
               disabled={cargando}
-              className="w-full flex justify-center py-3 text-sm font-bold shadow-md tracking-wide"
+              className="w-full flex justify-center py-3 text-sm font-bold shadow-md tracking-wide rounded-xl"
             >
               {cargando ? (
                 <span className="inline-flex items-center space-x-2">
@@ -264,19 +299,19 @@ export const PantallaLogin: React.FC<PantallaLoginProps> = ({
                       d="M4 12a8 8 0 018-8v8H4z"
                     />
                   </svg>
-                  <span>Ingresando...</span>
+                  <span>Ingresando a la cocina...</span>
                 </span>
               ) : (
-                'Ingresar'
+                'Ingresar a la cocina'
               )}
             </Boton>
           </div>
         </form>
 
-        {/* Pie de tarjeta informativo (Privado, sin enlaces de registro) */}
-        <div className="bg-stone-50 border-t border-stone-100 py-3 px-6 text-center">
-          <p className="text-xs text-stone-400 font-medium">
-            Panel privado de administración • Lo de Caro
+        {/* Pie de tarjeta informativo */}
+        <div className="bg-stone-50/80 border-t border-stone-100 py-3 px-6 text-center">
+          <p className="text-xs text-stone-500 font-medium">
+            Panel privado de administración • Lo de Caro — Comida Casera
           </p>
         </div>
       </div>

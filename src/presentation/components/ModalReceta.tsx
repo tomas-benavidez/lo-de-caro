@@ -291,30 +291,55 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-receta-titulo"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !guardando) onCerrar();
+      }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-stone-200 overflow-hidden my-auto max-h-[90vh] flex flex-col">
+      <div
+        className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-marca-canela/25 overflow-hidden w-full max-w-lg my-auto max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Franja superior con acento en gradiente de marca */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono shrink-0" />
+
         {/* Encabezado */}
-        <div className="px-5 py-3.5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
-          <div>
-            <h3 id="modal-receta-titulo" className="text-base font-bold text-stone-900">
-              {esEdicion ? 'Editar Receta de Producto' : 'Nueva Receta y Costeo'}
-            </h3>
-            <p className="text-xs text-stone-500">
-              Definí ingredientes por porción y calculá el margen de ganancia
-            </p>
+        <div className="px-5 py-4 border-b border-stone-200/80 flex items-center justify-between bg-stone-50/80 shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-marca-canela/10 border border-marca-canela/20 flex items-center justify-center text-marca-canela shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h2 id="modal-receta-titulo" className="font-titular font-bold text-stone-900 text-lg sm:text-xl">
+                {esEdicion ? 'Editar Receta de Producto' : 'Nueva Receta y Costeo'}
+              </h2>
+              <p className="text-xs text-stone-500">
+                Definí ingredientes por porción y calculá el margen de ganancia
+              </p>
+            </div>
           </div>
+
+          {/* Detalle decorativo sutil de marca */}
+          <img
+            src="/personajes/Recurso 10.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute right-14 top-3 w-8 h-8 opacity-15 pointer-events-none select-none hidden sm:block"
+          />
+
           <button
             type="button"
             onClick={onCerrar}
             disabled={guardando}
             aria-label="Cerrar modal"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-200 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:pointer-events-none"
           >
-            <span className="text-xl leading-none" aria-hidden="true">&times;</span>
+            <span className="text-xl leading-none font-bold" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -347,7 +372,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                   if (e.key === 'Enter') e.preventDefault();
                 }}
                 placeholder="ej. Raviolones de Osobuco, Tarta de Atún"
-                className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-all duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -361,7 +386,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                   disabled={guardando}
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value as CategoriaProducto)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 transition-all duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 >
                   {CATEGORIAS_PRODUCTO.map((cat) => (
                     <option key={cat} value={cat}>
@@ -380,7 +405,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                   disabled={guardando}
                   value={unidadVenta}
                   onChange={(e) => setUnidadVenta(e.target.value as UnidadVenta)}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 transition-all duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 >
                   {UNIDADES_VENTA.map((u) => (
                     <option key={u} value={u}>
@@ -409,7 +434,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                     if (e.key === 'Enter') e.preventDefault();
                   }}
                   placeholder="ej. 7500"
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-all duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -429,7 +454,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
                     if (e.key === 'Enter') e.preventDefault();
                   }}
                   placeholder="ej. 5"
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-colors duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 placeholder-stone-400 transition-all duration-150 hover:border-marca-canela active:border-marca-canela focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -616,10 +641,10 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
           </div>
 
           {/* Acciones */}
-          <div className="pt-2 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 border-t border-stone-200">
+          <div className="pt-3 flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 border-t border-stone-200/80">
             <Boton
               type="button"
-              variante="secundario"
+              variante="cancelar"
               tamano="mediano"
               disabled={guardando}
               onClick={onCerrar}
@@ -629,7 +654,7 @@ export const ModalReceta: React.FC<ModalRecetaProps> = ({
             </Boton>
             <Boton
               type="submit"
-              variante="primario"
+              variante="tomate"
               tamano="mediano"
               disabled={guardando}
               className="w-full sm:w-auto"

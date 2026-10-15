@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface BotonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variante?: 'primario' | 'secundario' | 'peligro';
+  variante?: 'primario' | 'secundario' | 'peligro' | 'tomate' | 'cancelar';
   tamano?: 'chico' | 'mediano' | 'grande';
   children: React.ReactNode;
 }
@@ -38,6 +38,10 @@ export const Boton = React.forwardRef<HTMLButtonElement, BotonProps>(
         'bg-transparent text-marca-canela border-2 border-marca-canela hover:bg-marca-canela/10 active:bg-marca-canela/20 focus-visible:ring-marca-canela focus-visible:ring-offset-marca-beige',
       peligro:
         'bg-marca-tomate text-white hover:bg-[#a62f22] active:bg-[#8f281d] focus-visible:ring-marca-tomate focus-visible:ring-offset-marca-beige shadow-sm',
+      tomate:
+        'bg-marca-tomate text-white font-bold hover:bg-marca-tomate/90 active:bg-[#9f1f13] focus-visible:ring-marca-tomate focus-visible:ring-offset-marca-beige shadow-md rounded-xl',
+      cancelar:
+        'bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 hover:text-stone-900 active:bg-stone-100 focus-visible:ring-marca-canela focus-visible:ring-offset-marca-beige rounded-xl',
     };
 
     const estilosTamano = {

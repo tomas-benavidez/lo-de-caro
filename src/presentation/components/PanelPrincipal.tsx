@@ -37,6 +37,170 @@ export interface PanelPrincipalProps {
   onCerrarSesion: () => Promise<void>;
 }
 
+interface ModuloNavegacion {
+  id: PestanaActiva;
+  labelDesktop: string;
+  labelMobile: string;
+  icono: (activo: boolean) => React.ReactNode;
+}
+
+const MODULOS: ModuloNavegacion[] = [
+  {
+    id: 'materiasPrimas',
+    labelDesktop: 'Materias Primas',
+    labelMobile: 'Insumos',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'recetas',
+    labelDesktop: 'Recetas',
+    labelMobile: 'Recetas',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'produccion',
+    labelDesktop: 'Producción',
+    labelMobile: 'Cocina',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343a7.975 7.975 0 010 11.314z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'ventas',
+    labelDesktop: 'Ventas',
+    labelMobile: 'Ventas',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'gastos',
+    labelDesktop: 'Gastos',
+    labelMobile: 'Gastos',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'finanzas',
+    labelDesktop: 'Finanzas',
+    labelMobile: 'Finanzas',
+    icono: (activo) => (
+      <svg
+        className="w-5 h-5 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={activo ? 2.2 : 1.8}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+        />
+      </svg>
+    ),
+  },
+];
+
+const obtenerFondosPestana = (p: PestanaActiva) => {
+  switch (p) {
+    case 'materiasPrimas':
+    case 'recetas':
+      return {
+        mobile: '/backgrounds/back_mobile_1.png',
+        desktop: '/backgrounds/back_desktop_1.png',
+      };
+    case 'produccion':
+    case 'ventas':
+      return {
+        mobile: '/backgrounds/back_mobile_2.png',
+        desktop: '/backgrounds/back_desktop_2.png',
+      };
+    case 'gastos':
+    case 'finanzas':
+      return {
+        mobile: '/backgrounds/back_mobile_3.png',
+        desktop: '/backgrounds/back_desktop_3.png',
+      };
+  }
+};
+
 /**
  * Panel Principal de Gestión para "Lo de Caro".
  * Solo se monta en el árbol de React cuando existe una sesión autenticada.
@@ -509,52 +673,124 @@ export const PanelPrincipal: React.FC<PanelPrincipalProps> = ({
     setErrorEliminacionGasto(null);
   };
 
+  const fondosActuales = obtenerFondosPestana(pestana);
+
   return (
-    <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800">
-      {/* Encabezado Superior Mobile-First con Identidad y Cierre de Sesión */}
-      <header className="bg-white/80 backdrop-blur border-b border-stone-200/80 sticky top-0 z-30 px-4 py-3">
-        <div className="max-w-2xl md:max-w-3xl lg:max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+    <div className="min-h-screen flex flex-col bg-marca-beige text-stone-800 relative selection:bg-marca-tomate selection:text-white">
+      {/* Fondos dinámicos fijos según solapa activa */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-fixed transition-all duration-500 block lg:hidden"
+        style={{ backgroundImage: `url('${fondosActuales.mobile}')` }}
+        aria-hidden="true"
+      />
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-fixed transition-all duration-500 hidden lg:block"
+        style={{ backgroundImage: `url('${fondosActuales.desktop}')` }}
+        aria-hidden="true"
+      />
+      {/* Capa de contraste mandatoria para legibilidad total de datos */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-marca-beige/40 backdrop-blur-[1px]"
+        aria-hidden="true"
+      />
+
+      {/* Encabezado Principal Responsivo (Desktop y Mobile) */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 px-3 sm:px-6 py-2.5 lg:py-3 transition-colors shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          {/* Logo e Identidad Visual */}
+          <div className="flex items-center space-x-3 shrink-0">
             <img
               src="/logos/png rojo.svg"
               alt="Logo Lo de Caro"
-              className="h-10 w-auto object-contain"
+              className="h-9 sm:h-10 w-auto object-contain"
               onError={(e) => {
-                // Fallback si el SVG no carga
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
             <div>
-              <h1 className="text-lg font-bold text-marca-canela leading-tight tracking-tight">
+              <h1 className="text-base sm:text-lg lg:text-xl font-bold font-titular text-marca-tomate leading-tight tracking-tight">
                 Lo de Caro
               </h1>
-              <p className="text-xs text-stone-500 font-medium">Comida casera congelada</p>
+              <p className="text-[11px] sm:text-xs text-stone-500 font-medium">
+                Obrador &amp; Cocina Casera
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {usuario.email && (
-              <span
-                className="hidden md:inline-block text-xs font-medium text-stone-500 max-w-[160px] truncate"
-                title={usuario.email}
-              >
-                {usuario.email}
-              </span>
-            )}
+          {/* Barra Horizontal de Pestañas (Desktop >= 1024px) */}
+          <nav
+            className="hidden lg:flex items-center space-x-1 bg-stone-100/90 p-1.5 rounded-xl border border-stone-200/60"
+            aria-label="Módulos del Obrador"
+          >
+            {MODULOS.map((item) => {
+              const activa = pestana === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setPestana(item.id)}
+                  type="button"
+                  aria-current={activa ? 'page' : undefined}
+                  className={`px-3.5 py-2 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-150 flex items-center gap-2
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate focus-visible:ring-offset-2
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    ${
+                      activa
+                        ? 'bg-marca-tomate text-white shadow-sm hover:bg-[#a82e20] active:bg-[#92261a]'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-white/80 active:bg-white'
+                    }`}
+                >
+                  {item.icono(activa)}
+                  <span>{item.labelDesktop}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Avatar de Caro, Identificador y Cierre de Sesión */}
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <img
+                  src="/personajes/personaje_principal.png"
+                  alt="Caro"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-marca-canela/30 bg-marca-beige shadow-sm"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <span
+                  className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"
+                  title="Sesión activa en el Obrador"
+                  aria-label="Estado: En línea"
+                />
+              </div>
+              <div className="hidden xl:block text-left">
+                <span className="block text-xs font-bold text-stone-800 leading-tight">Caro</span>
+                {usuario.email && (
+                  <span
+                    className="block text-[11px] text-stone-500 truncate max-w-[140px]"
+                    title={usuario.email}
+                  >
+                    {usuario.email}
+                  </span>
+                )}
+              </div>
+            </div>
+
             <button
               onClick={handleCerrarSesion}
               disabled={cerrandoSesion}
               type="button"
               aria-label="Cerrar sesión"
               title="Cerrar sesión"
-              className="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-md border border-stone-200 bg-white text-stone-700 transition-colors
+              className="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-white text-stone-700 transition-colors
                 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-300
                 active:bg-stone-100
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:ring-offset-1
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate focus-visible:ring-offset-2
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
-                className="w-4 h-4 mr-1 text-stone-500"
+                className="w-4 h-4 sm:mr-1.5 text-stone-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -567,43 +803,16 @@ export const PanelPrincipal: React.FC<PanelPrincipalProps> = ({
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
-              <span>{cerrandoSesion ? 'Saliendo...' : 'Cerrar sesión'}</span>
+              <span className="hidden sm:inline">
+                {cerrandoSesion ? 'Saliendo...' : 'Cerrar sesión'}
+              </span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Navegación por Solapas */}
-      <nav className="bg-white border-b border-stone-200 sticky top-[57px] z-20 px-2 overflow-x-auto scrollbar-none">
-        <div className="max-w-2xl md:max-w-3xl lg:max-w-5xl mx-auto flex space-x-1 py-1.5">
-          {[
-            { id: 'materiasPrimas', label: 'Materias Primas' },
-            { id: 'recetas', label: 'Recetas' },
-            { id: 'produccion', label: 'Producción' },
-            { id: 'ventas', label: 'Ventas' },
-            { id: 'gastos', label: 'Gastos' },
-            { id: 'finanzas', label: 'Finanzas' },
-          ].map((item) => {
-            const activa = pestana === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setPestana(item.id as PestanaActiva)}
-                className={`px-3 py-2 text-xs font-semibold rounded-md whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela ${
-                  activa
-                    ? 'bg-marca-canela text-white shadow-sm'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Área de Contenido Principal */}
-      <main className="flex-1 max-w-2xl md:max-w-3xl lg:max-w-5xl w-full mx-auto p-4">
+      {/* Área de Contenido Principal con padding inferior mobile para proteger la bottom bar */}
+      <main className="flex-1 max-w-2xl md:max-w-3xl lg:max-w-6xl w-full mx-auto p-4 pb-24 lg:pb-8 relative z-10">
         {pestana === 'materiasPrimas' && (
           <ListaMateriasPrimas
             materiasPrimas={materiasPrimas}
@@ -882,9 +1091,50 @@ export const PanelPrincipal: React.FC<PanelPrincipalProps> = ({
         onCancelar={handleCancelarEliminacionGasto}
       />
 
+      {/* Sticky Bottom Navigation Bar en Mobile (< 1024px) */}
+      <nav
+        className="fixed bottom-0 left-0 w-full z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/80 lg:hidden px-1 py-1"
+        style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
+        aria-label="Navegación táctil del obrador"
+      >
+        <div className="grid grid-cols-6 items-center">
+          {MODULOS.map((item) => {
+            const activa = pestana === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setPestana(item.id)}
+                type="button"
+                aria-current={activa ? 'page' : undefined}
+                aria-label={item.labelDesktop}
+                className={`min-h-[48px] py-1 px-0.5 flex flex-col items-center justify-center rounded-lg transition-colors
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-tomate focus-visible:ring-offset-1
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${
+                    activa
+                      ? 'text-marca-tomate font-bold'
+                      : 'text-stone-500 font-medium hover:text-stone-800 hover:bg-stone-50 active:bg-stone-100'
+                  }`}
+              >
+                <div
+                  className={`p-1 rounded-md transition-colors ${
+                    activa ? 'bg-marca-tomate/10 text-marca-tomate' : 'text-stone-500'
+                  }`}
+                >
+                  {item.icono(activa)}
+                </div>
+                <span className="text-[10px] leading-tight tracking-tight truncate max-w-full mt-0.5">
+                  {item.labelMobile}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       {/* Pie de página con identidad sutil */}
-      <footer className="text-center py-4 text-xs text-stone-400">
-        Lo de Caro &copy; 2026 — Sistema de Gestión Gastronómica
+      <footer className="relative z-10 text-center py-4 text-xs text-stone-500 pb-28 lg:pb-4">
+        Lo de Caro &copy; 2026 — Obrador Digital &amp; Cocina Casera
       </footer>
     </div>
   );

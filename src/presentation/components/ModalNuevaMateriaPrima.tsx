@@ -118,44 +118,65 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
   };
 
   const estilosInput =
-    'w-full px-3 py-2 text-sm rounded-lg bg-white text-stone-900 border border-stone-300 ' +
-    'placeholder-stone-400 transition-colors duration-150 ' +
+    'w-full px-3.5 py-2.5 text-sm rounded-xl bg-white text-stone-900 border border-stone-300 ' +
+    'placeholder-stone-400 transition-all duration-150 ' +
     'hover:border-marca-canela active:border-marca-canela ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela focus-visible:border-marca-canela ' +
     'disabled:opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed';
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-titulo"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !guardando) onCerrar();
+      }}
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-marca-canela/25 overflow-hidden w-full sm:max-w-md max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Franja superior con acento en gradiente de marca */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-marca-tomate via-marca-canela to-marca-otono shrink-0" />
+
         {/* Cabecera del modal */}
-        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
-          <div>
-            <h2 id="modal-titulo" className="text-base font-bold text-stone-900">
-              {esEdicion ? 'Editar Materia Prima' : 'Nueva Materia Prima'}
-            </h2>
-            <p className="text-xs text-stone-500">
-              {esEdicion
-                ? 'Modificá el costo unitario o realizá ajustes en el stock'
-                : 'Registrá un ingrediente para costear recetas y controlar stock'}
-            </p>
+        <div className="px-5 py-4 border-b border-stone-200/80 flex items-center justify-between bg-stone-50/80 shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-marca-canela/10 border border-marca-canela/20 flex items-center justify-center text-marca-canela shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <div>
+              <h2 id="modal-titulo" className="font-titular font-bold text-stone-900 text-lg sm:text-xl">
+                {esEdicion ? 'Editar Materia Prima' : 'Nueva Materia Prima'}
+              </h2>
+              <p className="text-xs text-stone-500">
+                {esEdicion
+                  ? 'Modificá el costo unitario o realizá ajustes en el stock'
+                  : 'Registrá un ingrediente para costear recetas y controlar stock'}
+              </p>
+            </div>
           </div>
+
+          {/* Detalle decorativo sutil de marca */}
+          <img
+            src="/personajes/Recurso 7.svg"
+            alt=""
+            aria-hidden="true"
+            className="absolute right-14 top-3 w-8 h-8 opacity-15 pointer-events-none select-none hidden sm:block"
+          />
 
           <button
             type="button"
             onClick={onCerrar}
             disabled={guardando}
             aria-label="Cerrar modal"
-            className="text-stone-400 hover:text-stone-700 active:text-stone-900 p-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 active:bg-stone-200 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-canela disabled:opacity-50 disabled:pointer-events-none"
           >
-            ✕
+            <span className="text-xl leading-none font-bold" aria-hidden="true">&times;</span>
           </button>
         </div>
 
@@ -164,7 +185,7 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
           {errorValidacion && (
             <div
               role="alert"
-              className="p-3 bg-red-50 border border-marca-tomate/40 rounded-lg text-xs text-marca-tomate font-medium"
+              className="p-3 bg-red-50 border border-marca-tomate/40 rounded-xl text-xs text-marca-tomate font-medium"
             >
               {errorValidacion}
             </div>
@@ -267,10 +288,10 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
           </p>
 
           {/* Acciones */}
-          <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-stone-200/80 flex items-center justify-end gap-2.5">
             <Boton
               type="button"
-              variante="secundario"
+              variante="cancelar"
               tamano="mediano"
               disabled={guardando}
               onClick={onCerrar}
@@ -280,7 +301,7 @@ export const ModalNuevaMateriaPrima: React.FC<ModalNuevaMateriaPrimaProps> = ({
 
             <Boton
               type="submit"
-              variante="primario"
+              variante="tomate"
               tamano="mediano"
               disabled={guardando}
             >
