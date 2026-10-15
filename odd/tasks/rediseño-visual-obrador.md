@@ -23,10 +23,10 @@
   - Tarjetas de recetas con rinde, desglose de costos (MP + Gasto Fijo), margen y precios de venta.  
   *Checks:* 179/179 tests OK, commit `620d71d`.
 
-- [ ] **TASK-04: Rediseño Visual de Producción y Freezer**  
+- [x] **TASK-04: Rediseño Visual de Producción y Freezer**  
   - Modernizar `ListaProduccion.tsx` y vistas de lotes según pantalla Stitch `67b6c10819de4eaabd82d5f8654bd57c` y móvil `23df44730589401880597839b82e1e31`.  
   - Indicadores de unidades en freezer, lotes cocinados y descuento de stock.  
-  *Checks:* Tests de producción pasando.
+  *Checks:* 179/179 tests OK, commit `0c0ae27`.
 
 - [ ] **TASK-05: Rediseño Visual de Ventas y Mostrador**  
   - Adaptar `ListaVentasCobranzas.tsx` según pantalla Stitch `acdec45b7493476083bdbf3645c3ffcc` y móvil `b160969070b84b419b6f60e0c54987db`.  
