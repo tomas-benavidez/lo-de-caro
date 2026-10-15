@@ -17,7 +17,8 @@ export default {
       },
       fontFamily: {
         sans: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
-        titular: ["Berlinsans", "Montserrat", "sans-serif"],
+        titular: ["Rubik", "Berlinsans", "Montserrat", "sans-serif"],
+        display: ["Rubik", "Montserrat", "sans-serif"],
         subtitulo: ["Bumbbled", "Montserrat", "sans-serif"],
       },
     },
