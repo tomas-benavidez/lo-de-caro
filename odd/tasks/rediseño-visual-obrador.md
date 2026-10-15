@@ -33,10 +33,10 @@
   - Tarjetas de ventas, gestión de clientes con deudas y cobros con estética de obrador.  
   *Checks:* 179/179 tests OK, build OK, commit `0a37a26`.
 
-- [ ] **TASK-06: Rediseño Visual de Gastos y Tablero de Finanzas**  
+- [x] **TASK-06: Rediseño Visual de Gastos y Tablero de Finanzas**  
   - Actualizar `ListaGastos.tsx` (Stitch `b0c36b7a133545f49f7af45f56d1fbd4`) y `TableroFinanzas.tsx` (Stitch `f0da3c1673914f6f8e58d891ec4349fa`).  
   - Tarjetas de balance mensual, meta editable con barra de progreso y ranking visual de productos.  
-  *Checks:* Tests de finanzas y gastos pasando.
+  *Checks:* 179/179 tests OK, commit `6c9e461`.
 
 - [ ] **TASK-07: Estilo de Modales y Formularios**  
   - Adaptar contenedores de modales (`ModalNuevaMateriaPrima`, `ModalReceta`, `ModalRegistroProduccion`, `ModalNuevaVenta`, `ModalNuevoGasto`) con tarjetas `bg-white/95`, esquinas suaves, bordes canela y 5 estados en controles.  
